@@ -1,4 +1,4 @@
-# WelVision - Automated Roller Defect Inspection System
+# Automated Roller Defect Inspection System - WelVision Pvt. Ltd.
 
 ## Project Description
 WelVision is an advanced industrial defect inspection system designed to automate the quality control process for roller manufacturing. By leveraging the power of Computer Vision and Artificial Intelligence (specifically Yolo and PyTorch), the application detects surface defects in real-time, ensuring high production standards. The system integrates seamlessly with industrial hardware (PLCs and Cameras) to provide a complete automation solution.
