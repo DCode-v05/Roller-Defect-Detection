@@ -25,7 +25,6 @@ class DataTab:
         self.parent = parent
         self.app = app_instance
         
-        # Components
         self.global_limits_panel = None
         self.roller_info_panel = None
         self.roller_data_table = None
@@ -35,15 +34,12 @@ class DataTab:
         try:
             log_info("data", "Setting up Data tab")
             
-            # Main container
             main_container = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
             main_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
             
-            # Header frame for title
             header_frame = tk.Frame(main_container, bg=Colors.PRIMARY_BG)
             header_frame.pack(fill=tk.X, pady=(0, 10))
             
-            # Title (centered)
             title_label = tk.Label(
                 header_frame,
                 text="Roller Data Management",
@@ -53,19 +49,15 @@ class DataTab:
             )
             title_label.pack()
             
-            # Global Roller Limits Section (Super Admin Only)
             self.global_limits_panel = GlobalLimitsPanel(main_container, self.app)
             self.global_limits_panel.create()
             
-            # Roller Information Section
             self.roller_info_panel = RollerInfoPanel(main_container, self.app)
             self.roller_info_panel.create()
             
-            # Roller Data Table Section
             self.roller_data_table = RollerDataTable(main_container, self.app)
             self.roller_data_table.create()
             
-            # Load initial data
             self.refresh_data()
             
             log_info("data", "Data tab setup completed")

@@ -25,17 +25,15 @@ class ModelSelector:
         self.app = app_instance
         self.selector_frame = None
         
-        # Model dropdowns
         self.bf_model_var = tk.StringVar()
         self.od_model_var = tk.StringVar()
         self.bf_model_dropdown = None
         self.od_model_dropdown = None
         
-        # Model data
         self.bf_models = []
         self.od_models = []
-        self.bf_model_paths = {}  # {model_name: model_path}
-        self.od_model_paths = {}  # {model_name: model_path}
+        self.bf_model_paths = {}
+        self.od_model_paths = {}
         
     def create(self):
         """Create the model selector UI."""
@@ -49,11 +47,9 @@ class ModelSelector:
         )
         self.selector_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
         
-        # Main content frame with reduced padding
         content_frame = tk.Frame(self.selector_frame, bg=Colors.PRIMARY_BG)
         content_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        # BF Model Selection (more compact)
         bf_frame = tk.Frame(content_frame, bg=Colors.PRIMARY_BG)
         bf_frame.pack(fill=tk.X, pady=3)
         
@@ -78,7 +74,6 @@ class ModelSelector:
         self.bf_model_dropdown.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.bf_model_dropdown.bind("<<ComboboxSelected>>", self._on_model_selected)
         
-        # OD Model Selection (more compact)
         od_frame = tk.Frame(content_frame, bg=Colors.PRIMARY_BG)
         od_frame.pack(fill=tk.X, pady=3)
         
@@ -103,11 +98,9 @@ class ModelSelector:
         self.od_model_dropdown.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.od_model_dropdown.bind("<<ComboboxSelected>>", self._on_model_selected)
         
-        # Refresh button (smaller)
         button_frame = tk.Frame(content_frame, bg=Colors.PRIMARY_BG)
         button_frame.pack(fill=tk.X, pady=3)
         
-        # Refresh button (smaller)
         button_frame = tk.Frame(content_frame, bg=Colors.PRIMARY_BG)
         button_frame.pack(fill=tk.X, pady=3)
         
@@ -122,7 +115,6 @@ class ModelSelector:
         )
         refresh_button.pack(side=tk.LEFT, padx=5)
         
-        # Load models on creation
         self.load_models_from_db()
         
         return self.selector_frame
@@ -130,11 +122,9 @@ class ModelSelector:
     def load_models_from_db(self):
         """Load available models from database and preserve current selection."""
         try:
-            # Save current selections
             current_bf_selection = self.bf_model_var.get()
             current_od_selection = self.od_model_var.get()
             
-            # Connect to database
             connection = mysql.connector.connect(
                 host=AppConfig.DB_HOST,
                 port=AppConfig.DB_PORT,
@@ -145,13 +135,11 @@ class ModelSelector:
             
             cursor = connection.cursor()
             
-            # Load BF models (ordered by upload_date DESC, so latest is first)
             cursor.execute("SELECT model_name, model_path FROM bf_models ORDER BY upload_date DESC")
             bf_results = cursor.fetchall()
             self.bf_models = [row[0] for row in bf_results]
             self.bf_model_paths = {row[0]: row[1] for row in bf_results}
             
-            # Load OD models (ordered by upload_date DESC, so latest is first)
             cursor.execute("SELECT model_name, model_path FROM od_models ORDER BY upload_date DESC")
             od_results = cursor.fetchall()
             self.od_models = [row[0] for row in od_results]
@@ -160,10 +148,8 @@ class ModelSelector:
             cursor.close()
             connection.close()
             
-            # Update dropdowns
             if self.bf_model_dropdown:
                 self.bf_model_dropdown['values'] = self.bf_models
-                # Restore previous selection if it still exists, otherwise use app's selected model or first
                 if current_bf_selection and current_bf_selection in self.bf_models:
                     self.bf_model_var.set(current_bf_selection)
                 elif hasattr(self.app, 'selected_bf_model_name') and self.app.selected_bf_model_name in self.bf_models:
@@ -173,7 +159,6 @@ class ModelSelector:
             
             if self.od_model_dropdown:
                 self.od_model_dropdown['values'] = self.od_models
-                # Restore previous selection if it still exists, otherwise use app's selected model or first
                 if current_od_selection and current_od_selection in self.od_models:
                     self.od_model_var.set(current_od_selection)
                 elif hasattr(self.app, 'selected_od_model_name') and self.app.selected_od_model_name in self.od_models:
@@ -181,7 +166,6 @@ class ModelSelector:
                 elif self.od_models:
                     self.od_model_var.set(self.od_models[0])
             
-            # Auto-save selected models to app on load
             self._save_selected_models_to_app()
                         
         except mysql.connector.Error as e:
@@ -212,16 +196,12 @@ class ModelSelector:
     
     def _on_model_selected(self, event=None):
         """Handle model selection change and reload defect thresholds."""
-        # Save selected models to app
         self._save_selected_models_to_app()
         
-        # Get selected model names
         bf_model_name = self.bf_model_var.get()
         od_model_name = self.od_model_var.get()
         
-        # Reload defect thresholds immediately for the newly selected models
         if hasattr(self.app, 'settings_tab') and self.app.settings_tab:
-            # Use the reload method to recreate threshold sliders with new model classes
             self.app.settings_tab.reload_defect_thresholds_for_selected_models()
                 
     def _save_selected_models_to_app(self):
@@ -232,7 +212,6 @@ class ModelSelector:
             self.app.selected_od_model_path = self.get_selected_od_model_path()
             self.app.selected_od_model_name = self.od_model_var.get()
         else:
-            # Initialize if not exists
             self.app.selected_bf_model_path = self.get_selected_bf_model_path()
             self.app.selected_bf_model_name = self.bf_model_var.get()
             self.app.selected_od_model_path = self.get_selected_od_model_path()

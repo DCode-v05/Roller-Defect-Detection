@@ -27,10 +27,9 @@ class NavButton:
         self.button = None
         self.is_active = False
         
-        # Button styling (matching expected UI style)
-        self.inactive_bg = "#2563a8"  # Blue for inactive
-        self.active_bg = "#28a745"     # Green for active state
-        self.hover_bg = "#3a7bc8"      # Lighter blue on hover
+        self.inactive_bg = "#2563a8"
+        self.active_bg = "#28a745"
+        self.hover_bg = "#3a7bc8"
         self.text_color = Colors.WHITE
         
     def create(self):
@@ -43,7 +42,7 @@ class NavButton:
             fg=self.text_color,
             activebackground=self.hover_bg,
             activeforeground=self.text_color,
-            disabledforeground=self.text_color,  # Keep text white when disabled
+            disabledforeground=self.text_color,
             relief=tk.RAISED,
             bd=2,
             cursor="hand2",
@@ -52,7 +51,6 @@ class NavButton:
             command=self._on_click
         )
         
-        # Bind hover events
         self.button.bind("<Enter>", self._on_hover)
         self.button.bind("<Leave>", self._on_leave)
         
@@ -65,7 +63,6 @@ class NavButton:
     
     def _on_hover(self, event):
         """Handle mouse hover."""
-        # Don't change color if button is disabled or active
         if self.button['state'] == tk.DISABLED:
             return
         if not self.is_active:
@@ -73,7 +70,6 @@ class NavButton:
     
     def _on_leave(self, event):
         """Handle mouse leave."""
-        # Don't change color if button is disabled
         if self.button['state'] == tk.DISABLED:
             return
         if not self.is_active:

@@ -28,14 +28,12 @@ class InfoTab:
         self.parent = parent
         self.app = app_instance
         
-        # Components
         self.title_management = None
         self.settings_history = None
         self.system_information = None
         self.database_config = None
         self.user_manual = None
         
-        # Scrollable canvas and frame
         self.canvas = None
         self.scrollable_frame = None
         self._mousewheel_bound = False
@@ -45,7 +43,6 @@ class InfoTab:
         try:
             log_info("info", "Setting up Info tab")
             
-            # Unbind previous mousewheel if it was bound
             if self._mousewheel_bound:
                 try:
                     if hasattr(self, 'canvas') and self.canvas:
@@ -54,11 +51,9 @@ class InfoTab:
                 except:
                     pass
             
-            # Create main container
             main_container = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
             main_container.pack(fill=tk.BOTH, expand=True)
             
-            # Title
             title_label = tk.Label(
                 main_container,
                 text="Application Settings",
@@ -68,7 +63,6 @@ class InfoTab:
             )
             title_label.pack(pady=(10, 5))
             
-            # Subtitle
             subtitle_label = tk.Label(
                 main_container,
                 text="Configure application preferences and system settings",
@@ -78,27 +72,22 @@ class InfoTab:
             )
             subtitle_label.pack(pady=(0, 10))
             
-            # Create canvas for scrolling
             self.canvas = tk.Canvas(main_container, bg=Colors.PRIMARY_BG, highlightthickness=0)
             scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=self.canvas.yview)
             self.scrollable_frame = tk.Frame(self.canvas, bg=Colors.PRIMARY_BG)
             
-            # Debounced scroll region update with throttling
             self._scroll_update_id = None
             self._last_scroll_update = 0
             
             def _update_scroll_region(event=None):
-                # Cancel pending update
                 if self._scroll_update_id:
                     self.canvas.after_cancel(self._scroll_update_id)
                 
-                # Throttle updates to max once per 200ms
                 import time
                 current_time = time.time()
                 if current_time - self._last_scroll_update < 0.2:
                     return
                 
-                # Schedule new update after 200ms
                 def _do_update():
                     try:
                         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -113,27 +102,21 @@ class InfoTab:
             self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw", width=self.canvas.winfo_reqwidth())
             self.canvas.configure(yscrollcommand=scrollbar.set)
             
-            # Pack canvas and scrollbar
             self.canvas.pack(side="left", fill="both", expand=True, padx=20, pady=(0, 20))
             scrollbar.pack(side="right", fill="y")
             
-            # Bind canvas resize to update window width
             def _on_canvas_configure(event):
                 self.canvas.itemconfig(self.canvas.find_withtag("all")[0], width=event.width)
             
             self.canvas.bind("<Configure>", _on_canvas_configure)
             
-            # Enable mouse wheel scrolling - OPTIMIZED VERSION
             def _on_mousewheel(event):
-                # Check if canvas still exists before scrolling
                 if not self.canvas or not self.canvas.winfo_exists():
                     return
                 
                 try:
-                    # Smooth scrolling with larger steps
                     self.canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
                 except tk.TclError:
-                    # Canvas was destroyed, ignore
                     pass
             
             def _bind_mousewheel(event=None):
@@ -148,15 +131,11 @@ class InfoTab:
                     except:
                         pass
             
-            # Bind only when mouse enters the canvas area
             self.canvas.bind("<Enter>", _bind_mousewheel)
             self.canvas.bind("<Leave>", _unbind_mousewheel)
             
-            # Initial bind
             _bind_mousewheel()
             
-            # ===== LAZY LOADING - Create components on-demand =====
-            # Show loading message while components load
             loading_label = tk.Label(
                 self.scrollable_frame,
                 text="⏳ Loading components...",
@@ -167,7 +146,6 @@ class InfoTab:
             )
             loading_label.pack()
             
-            # Load components asynchronously to avoid blocking UI
             self.parent.after(50, lambda: self._load_components(loading_label))
             
             log_info("info", "Info tab setup initiated (components loading asynchronously)")
@@ -177,14 +155,11 @@ class InfoTab:
     
     def _load_components(self, loading_label):
         """Load all components asynchronously."""
-        # Remove loading message
         loading_label.destroy()
         
-        # Load components one by one
         self.title_management = TitleManagement(self.scrollable_frame, self.app)
         self.title_management.create()
         
-        # Small delay between components to prevent UI freeze
         self.parent.after(10, self._load_settings_history)
     
     def _load_settings_history(self):
@@ -203,7 +178,6 @@ class InfoTab:
     
     def _load_database_config(self):
         """Load database config component."""
-        # Only show database config for Super Admin
         user_role = getattr(self.app, 'current_role', 'Operator')
         if user_role == 'Super Admin':
             self.database_config = DatabaseConfig(self.scrollable_frame, self.app)
@@ -216,7 +190,6 @@ class InfoTab:
         self.user_manual = UserManual(self.scrollable_frame, self.app)
         self.user_manual.create()
         
-        # Final scroll region update - deferred to avoid blocking
         def _final_update():
             try:
                 self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -226,7 +199,6 @@ class InfoTab:
     
     def cleanup(self):
         """Cleanup method called when tab is destroyed."""
-        # Unbind mousewheel event immediately
         if self._mousewheel_bound:
             try:
                 self.canvas.unbind_all("<MouseWheel>")

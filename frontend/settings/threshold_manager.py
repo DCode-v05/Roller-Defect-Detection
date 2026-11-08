@@ -22,29 +22,25 @@ class ThresholdManager:
         self.parent = parent
         self.app = app_instance
         
-        # Storage for threshold widgets
-        self.bf_threshold_sliders = {}  # {defect_name: (slider, label)}
-        self.od_threshold_sliders = {}  # {defect_name: (slider, label)}
-        self.bf_size_threshold_sliders = {}  # {defect_name: (slider, label)}
-        self.od_size_threshold_sliders = {}  # {defect_name: (slider, label)}
+        self.bf_threshold_sliders = {}
+        self.od_threshold_sliders = {}
+        self.bf_size_threshold_sliders = {}
+        self.od_size_threshold_sliders = {}
         
-        # Storage for threshold values
-        self.bf_threshold_values = {}  # {defect_name: value}
-        self.od_threshold_values = {}  # {defect_name: value}
-        self.bf_size_threshold_values = {}  # {defect_name: value}
-        self.od_size_threshold_values = {}  # {defect_name: value}
+        self.bf_threshold_values = {}
+        self.od_threshold_values = {}
+        self.bf_size_threshold_values = {}
+        self.od_size_threshold_values = {}
         
-        # Model confidence sliders
         self.bf_conf_slider = None
         self.od_conf_slider = None
         self.bf_conf_label = None
         self.od_conf_label = None
         
-        # Container frames
         self.conf_frame = None
         self.bf_defect_frame = None
         self.od_defect_frame = None
-        self.defect_container = None  # Track the main defect container
+        self.defect_container = None
     
     def create_model_confidence_section(self, parent_frame):
         """
@@ -63,7 +59,6 @@ class ThresholdManager:
         )
         self.conf_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # BF Model Confidence
         bf_conf_frame = tk.Frame(self.conf_frame, bg=Colors.PRIMARY_BG, pady=10)
         bf_conf_frame.pack(fill=tk.X, padx=10)
         
@@ -78,7 +73,6 @@ class ThresholdManager:
         )
         bf_conf_label.pack(side=tk.LEFT, padx=10)
         
-        # Set default if None or not exists
         if not hasattr(self.app, 'bf_conf_threshold') or self.app.bf_conf_threshold is None:
             self.app.bf_conf_threshold = 0.25
         self.app.bf_conf_slider_value = tk.DoubleVar(value=self.app.bf_conf_threshold * 100)
@@ -93,10 +87,8 @@ class ThresholdManager:
         )
         self.bf_conf_slider.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
         
-        # Bind click event for direct positioning
         self.bf_conf_slider.bind("<Button-1>", lambda e: self._slider_click_handler(e, self.bf_conf_slider, self.app.bf_conf_slider_value))
         
-        # Entry field for BF confidence
         self.bf_conf_entry = tk.Entry(
             bf_conf_frame,
             font=Fonts.TEXT,
@@ -119,7 +111,6 @@ class ThresholdManager:
         )
         self.bf_conf_label.pack(side=tk.LEFT, padx=2)
         
-        # Bind slider and entry updates for BF
         def update_bf_conf_from_slider(val):
             self.bf_conf_entry.delete(0, tk.END)
             self.bf_conf_entry.insert(0, str(int(float(val))))
@@ -127,13 +118,11 @@ class ThresholdManager:
         def update_bf_conf_from_entry(event=None):
             try:
                 value = float(self.bf_conf_entry.get())
-                # Clamp value between 1 and 100
                 value = max(1, min(100, value))
                 self.app.bf_conf_slider_value.set(value)
                 self.bf_conf_entry.delete(0, tk.END)
                 self.bf_conf_entry.insert(0, str(int(value)))
             except ValueError:
-                # Invalid input - restore from slider
                 self.bf_conf_entry.delete(0, tk.END)
                 self.bf_conf_entry.insert(0, str(int(self.app.bf_conf_slider_value.get())))
         
@@ -141,7 +130,6 @@ class ThresholdManager:
         self.bf_conf_entry.bind("<Return>", update_bf_conf_from_entry)
         self.bf_conf_entry.bind("<FocusOut>", update_bf_conf_from_entry)
         
-        # OD Model Confidence
         od_conf_frame = tk.Frame(self.conf_frame, bg=Colors.PRIMARY_BG, pady=10)
         od_conf_frame.pack(fill=tk.X, padx=10)
         
@@ -156,7 +144,6 @@ class ThresholdManager:
         )
         od_conf_label.pack(side=tk.LEFT, padx=10)
         
-        # Set default if None or not exists
         if not hasattr(self.app, 'od_conf_threshold') or self.app.od_conf_threshold is None:
             self.app.od_conf_threshold = 0.25
         self.app.od_conf_slider_value = tk.DoubleVar(value=self.app.od_conf_threshold * 100)
@@ -171,10 +158,8 @@ class ThresholdManager:
         )
         self.od_conf_slider.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
         
-        # Bind click event for direct positioning
         self.od_conf_slider.bind("<Button-1>", lambda e: self._slider_click_handler(e, self.od_conf_slider, self.app.od_conf_slider_value))
         
-        # Entry field for OD confidence
         self.od_conf_entry = tk.Entry(
             od_conf_frame,
             font=Fonts.TEXT,
@@ -197,7 +182,6 @@ class ThresholdManager:
         )
         self.od_conf_label.pack(side=tk.LEFT, padx=2)
         
-        # Bind slider and entry updates for OD
         def update_od_conf_from_slider(val):
             self.od_conf_entry.delete(0, tk.END)
             self.od_conf_entry.insert(0, str(int(float(val))))
@@ -205,13 +189,11 @@ class ThresholdManager:
         def update_od_conf_from_entry(event=None):
             try:
                 value = float(self.od_conf_entry.get())
-                # Clamp value between 1 and 100
                 value = max(1, min(100, value))
                 self.app.od_conf_slider_value.set(value)
                 self.od_conf_entry.delete(0, tk.END)
                 self.od_conf_entry.insert(0, str(int(value)))
             except ValueError:
-                # Invalid input - restore from slider
                 self.od_conf_entry.delete(0, tk.END)
                 self.od_conf_entry.insert(0, str(int(self.app.od_conf_slider_value.get())))
         
@@ -229,11 +211,9 @@ class ThresholdManager:
             bf_model: YOLO BF model instance
             od_model: YOLO OD model instance
         """
-        # Destroy existing defect container if it exists
         if self.defect_container and self.defect_container.winfo_exists():
             self.defect_container.destroy()
         
-        # Main container for defect thresholds
         self.defect_container = tk.LabelFrame(
             parent_frame,
             text="Thresholds",
@@ -244,17 +224,14 @@ class ThresholdManager:
         )
         self.defect_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Create 4-column layout
         columns_frame = tk.Frame(self.defect_container, bg=Colors.PRIMARY_BG)
         columns_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Configure grid weights for equal column width
         columns_frame.grid_columnconfigure(0, weight=1)
         columns_frame.grid_columnconfigure(1, weight=1)
         columns_frame.grid_columnconfigure(2, weight=1)
         columns_frame.grid_columnconfigure(3, weight=1)
         
-        # Column 1 - BF Defect Confidence
         self.bf_defect_frame = tk.LabelFrame(
             columns_frame,
             text="BF Defect Confidence",
@@ -265,7 +242,6 @@ class ThresholdManager:
         )
         self.bf_defect_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         
-        # Get BF model classes
         if bf_model and hasattr(bf_model, 'names'):
             bf_classes = bf_model.names
             for class_id, class_name in bf_classes.items():
@@ -276,7 +252,6 @@ class ThresholdManager:
                     default_value=100
                 )
         
-        # Column 2 - OD Defect Confidence
         self.od_defect_frame = tk.LabelFrame(
             columns_frame,
             text="OD Defect Confidence",
@@ -287,7 +262,6 @@ class ThresholdManager:
         )
         self.od_defect_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         
-        # Get OD model classes
         if od_model and hasattr(od_model, 'names'):
             od_classes = od_model.names
             for class_id, class_name in od_classes.items():
@@ -298,7 +272,6 @@ class ThresholdManager:
                     default_value=100
                 )
         
-        # Column 3 - BF Defect Size Threshold
         self.bf_size_frame = tk.LabelFrame(
             columns_frame,
             text="BF Defect Size Threshold",
@@ -309,7 +282,6 @@ class ThresholdManager:
         )
         self.bf_size_frame.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
         
-        # Get BF model classes for size thresholds
         if bf_model and hasattr(bf_model, 'names'):
             bf_classes = bf_model.names
             for class_id, class_name in bf_classes.items():
@@ -320,7 +292,6 @@ class ThresholdManager:
                     default_value=0
                 )
         
-        # Column 4 - OD Defect Size Threshold
         self.od_size_frame = tk.LabelFrame(
             columns_frame,
             text="OD Defect Size Threshold",
@@ -331,7 +302,6 @@ class ThresholdManager:
         )
         self.od_size_frame.grid(row=0, column=3, sticky="nsew", padx=5, pady=5)
         
-        # Get OD model classes for size thresholds
         if od_model and hasattr(od_model, 'names'):
             od_classes = od_model.names
             for class_id, class_name in od_classes.items():
@@ -378,10 +348,8 @@ class ThresholdManager:
         )
         slider.pack(side=tk.LEFT, padx=2)
         
-        # Bind click event for direct positioning
         slider.bind("<Button-1>", lambda e: self._slider_click_handler(e, slider, var))
         
-        # Entry field
         entry = tk.Entry(
             slider_frame,
             font=Fonts.SMALL,
@@ -405,7 +373,6 @@ class ThresholdManager:
         )
         value_label.pack(side=tk.LEFT, padx=1)
         
-        # Update functions
         def update_from_slider(val):
             entry.delete(0, tk.END)
             entry.insert(0, str(int(float(val))))
@@ -417,7 +384,6 @@ class ThresholdManager:
         def update_from_entry(event=None):
             try:
                 value = float(entry.get())
-                # Clamp value between 1 and 100
                 value = max(1, min(100, value))
                 var.set(value)
                 entry.delete(0, tk.END)
@@ -427,7 +393,6 @@ class ThresholdManager:
                 else:
                     self.od_threshold_values[defect_name] = int(value)
             except ValueError:
-                # Invalid input - restore from slider
                 entry.delete(0, tk.END)
                 entry.insert(0, str(int(var.get())))
         
@@ -435,10 +400,8 @@ class ThresholdManager:
         entry.bind("<Return>", update_from_entry)
         entry.bind("<FocusOut>", update_from_entry)
         
-        # Trigger initial update to display the value
         update_from_slider(default_value)
         
-        # Store references
         if model_type == 'bf':
             self.bf_threshold_sliders[defect_name] = (slider, entry, var)
             self.bf_threshold_values[defect_name] = default_value
@@ -475,17 +438,15 @@ class ThresholdManager:
         slider = ttk.Scale(
             slider_frame,
             from_=0,
-            to=30000,  # Maximum area in pixels
+            to=30000,
             orient=tk.HORIZONTAL,
             length=100,
             variable=var
         )
         slider.pack(side=tk.LEFT, padx=2)
         
-        # Bind click event for direct positioning
         slider.bind("<Button-1>", lambda e: self._slider_click_handler(e, slider, var))
         
-        # Entry field
         entry = tk.Entry(
             slider_frame,
             font=Fonts.SMALL,
@@ -509,7 +470,6 @@ class ThresholdManager:
         )
         value_label.pack(side=tk.LEFT, padx=1)
         
-        # Update functions
         def update_from_slider(val):
             entry.delete(0, tk.END)
             entry.insert(0, str(int(float(val))))
@@ -521,7 +481,6 @@ class ThresholdManager:
         def update_from_entry(event=None):
             try:
                 value = float(entry.get())
-                # Clamp value between 0 and 30000
                 value = max(0, min(30000, value))
                 var.set(value)
                 entry.delete(0, tk.END)
@@ -531,7 +490,6 @@ class ThresholdManager:
                 else:
                     self.od_size_threshold_values[defect_name] = int(value)
             except ValueError:
-                # Invalid input - restore from slider
                 entry.delete(0, tk.END)
                 entry.insert(0, str(int(var.get())))
         
@@ -539,10 +497,8 @@ class ThresholdManager:
         entry.bind("<Return>", update_from_entry)
         entry.bind("<FocusOut>", update_from_entry)
         
-        # Trigger initial update to display the value
         update_from_slider(default_value)
         
-        # Store references
         if model_type == 'bf':
             self.bf_size_threshold_sliders[defect_name] = (slider, entry, var)
             self.bf_size_threshold_values[defect_name] = default_value
@@ -586,7 +542,6 @@ class ThresholdManager:
             bf_size_thresholds: Dictionary of BF size thresholds (optional)
             od_size_thresholds: Dictionary of OD size thresholds (optional)
         """
-        # Restore BF defect thresholds
         for defect_name, value in bf_thresholds.items():
             if defect_name in self.bf_threshold_sliders:
                 slider, entry, var = self.bf_threshold_sliders[defect_name]
@@ -595,7 +550,6 @@ class ThresholdManager:
                 entry.insert(0, str(int(value)))
                 self.bf_threshold_values[defect_name] = value
         
-        # Restore OD defect thresholds
         for defect_name, value in od_thresholds.items():
             if defect_name in self.od_threshold_sliders:
                 slider, entry, var = self.od_threshold_sliders[defect_name]
@@ -604,7 +558,6 @@ class ThresholdManager:
                 entry.insert(0, str(int(value)))
                 self.od_threshold_values[defect_name] = value
         
-        # Restore BF size thresholds
         if bf_size_thresholds:
             for defect_name, value in bf_size_thresholds.items():
                 if defect_name in self.bf_size_threshold_sliders:
@@ -614,7 +567,6 @@ class ThresholdManager:
                     entry.insert(0, str(int(value)))
                     self.bf_size_threshold_values[defect_name] = value
         
-        # Restore OD size thresholds
         if od_size_thresholds:
             for defect_name, value in od_size_thresholds.items():
                 if defect_name in self.od_size_threshold_sliders:
@@ -624,7 +576,6 @@ class ThresholdManager:
                     entry.insert(0, str(int(value)))
                     self.od_size_threshold_values[defect_name] = value
         
-        # Restore model confidence
         self.app.bf_conf_slider_value.set(bf_conf * 100)
         self.bf_conf_entry.delete(0, tk.END)
         self.bf_conf_entry.insert(0, str(int(bf_conf * 100)))
@@ -646,28 +597,21 @@ class ThresholdManager:
             var: The variable associated with the slider
         """
         try:
-            # Get slider geometry
             slider_width = slider.winfo_width()
             click_x = event.x
             
-            # Get slider range
             from_val = slider.cget('from')
             to_val = slider.cget('to')
             
-            # Calculate value based on click position
-            # Account for slider padding/border (approximately 10 pixels on each side)
             padding = 10
             effective_width = slider_width - (2 * padding)
             effective_x = max(0, min(click_x - padding, effective_width))
             
-            # Calculate percentage and value
             percentage = effective_x / effective_width
             new_value = from_val + (percentage * (to_val - from_val))
             
-            # Set the new value
             var.set(new_value)
             
-            # Trigger the slider's command callback
             slider.event_generate("<<TrackbarChanged>>")
             
         except Exception as e:

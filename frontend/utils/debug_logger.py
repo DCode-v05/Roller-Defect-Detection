@@ -24,7 +24,6 @@ class DebugLogger:
     
     def _initialize(self):
         """Initialize the debug logger."""
-        # Create debug logs directory on Desktop
         username = os.getlogin()
         self._log_dir = Path(f"C:\\Users\\{username}\\Desktop\\Debug Logs")
         self._log_dir.mkdir(parents=True, exist_ok=True)
@@ -69,11 +68,9 @@ class DebugLogger:
         if not self.is_enabled(page_name):
             return
         
-        # Format error message
         error_type = type(exception).__name__ if exception else "Error"
         error_msg = str(exception) if exception else "Unknown error"
         
-        # Create user-friendly message
         user_message = f"""
 ╔══════════════════════════════════════════════════════════════════╗
 ║ ERROR DETECTED                                                   ║
@@ -92,13 +89,11 @@ ERROR MESSAGE:
 {error_msg}
 """
         
-        # Add additional info if provided
         if additional_info:
             user_message += "\nADDITIONAL INFORMATION:\n"
             for key, value in additional_info.items():
                 user_message += f"  • {key}: {value}\n"
         
-        # Add technical traceback if exception exists
         if exception:
             user_message += "\n" + "─" * 70 + "\n"
             user_message += "TECHNICAL DETAILS (for developers):\n"
@@ -107,10 +102,8 @@ ERROR MESSAGE:
         
         user_message += "\n" + "═" * 70 + "\n\n"
         
-        # Write to log file
         self._write_to_file(page_name, user_message)
         
-        # Also print to console
         print(f"❌ ERROR logged in {page_name}: {error_context}")
     
     def log_warning(self, page_name, warning_context, details=None):
@@ -175,13 +168,11 @@ WARNING:
     
     def _write_to_file(self, page_name, message):
         """Write message to the appropriate log file."""
-        # Create filename with date and time: page_MonthName_Date_Hour_Min.log
-        # This creates a new log file each time debug is enabled
         now = datetime.now()
-        month_name = now.strftime('%B')  # Full month name (e.g., October)
-        date = now.strftime('%d')        # Day (e.g., 28)
-        hour = now.strftime('%H')        # Hour in 24-hour format (e.g., 14)
-        minute = now.strftime('%M')      # Minute (e.g., 35)
+        month_name = now.strftime('%B')
+        date = now.strftime('%d')
+        hour = now.strftime('%H')
+        minute = now.strftime('%M')
         
         log_file = self._log_dir / f"{page_name}_{month_name}_{date}_{hour}_{minute}.log"
         
@@ -201,11 +192,9 @@ WARNING:
         return self._log_dir / f"{page_name}_{month_name}_{date}_{hour}_{minute}.log"
 
 
-# Global singleton instance
 debug_logger = DebugLogger()
 
 
-# Convenience functions for easy import
 def enable_debug(page_name):
     """Enable debug logging for a page."""
     debug_logger.enable_page(page_name)

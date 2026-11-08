@@ -31,7 +31,6 @@ class InferenceTab:
         self.parent = parent
         self.app = app_instance
         
-        # Components
         self.status_panel = None
         self.camera_manager = None
         self.control_panel = None
@@ -43,33 +42,26 @@ class InferenceTab:
         try:
             log_info("inference", "Setting up Inference tab UI")
             
-            # Main container
             main_container = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
             main_container.pack(fill=tk.BOTH, expand=True)
             
-            # Top section: Status panel
             self.status_panel = StatusPanel(main_container, self.app)
             self.status_panel.create()
             
-            # Start monitoring status updates
             self._monitor_status_updates()
             
-            # Middle section: Camera feeds only (full width)
             middle_frame = tk.Frame(main_container, bg=Colors.PRIMARY_BG)
             middle_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
             
             self.camera_manager = CameraFeedManager(middle_frame)
             self.camera_manager.setup()
             
-            # Bottom section: Results with roller info and control panel
             bottom_frame = tk.Frame(main_container, bg=Colors.PRIMARY_BG)
             bottom_frame.pack(fill=tk.X, padx=5, pady=5)
             
-            # Results panel (includes roller info now)
             self.results_panel = ResultsPanel(bottom_frame, self.app)
             self.results_panel.create()
             
-            # Control panel
             self.control_panel = ControlPanel(bottom_frame, self.app)
             self.control_panel.setup()
             
@@ -83,16 +75,13 @@ class InferenceTab:
         """Update OD camera feed display."""
         od_feed = self.camera_manager.get_feed('od')
         
-        # Optimize sleep timing for better performance
-        frame_delay = 0.025  # ~40 FPS target (reduced from 30ms)
+        frame_delay = 0.025
         
         while not self.app.camera_stop_flag.is_set():
             try:
-                # Check if feed still exists
                 if od_feed is None or od_feed.canvas is None:
                     break
                 
-                # Check if inspection is running by checking if processes exist
                 inspection_running = (
                     hasattr(self.app, 'processes') and 
                     self.app.processes is not None and 
@@ -101,7 +90,6 @@ class InferenceTab:
                 )
                 
                 if inspection_running:
-                    # Inspection is running - show live feed from shared memory
                     with self.app.annotated_frame_lock_od:
                         np_frame = np.frombuffer(
                             self.app.shared_annotated_od.get_obj(), 
@@ -109,24 +97,19 @@ class InferenceTab:
                         ).reshape(self.app.frame_shape)
                         frame = np_frame.copy()
                 else:
-                    # Inspection is stopped - show black screen
                     frame = np.zeros(self.app.frame_shape, dtype=np.uint8)
 
 
-                # Update the camera feed
                 od_feed.update_frame(frame)
                 
-                # Optimized sleep
                 time.sleep(frame_delay)
             except Exception as e:
-                # Handle exceptions and exit gracefully
                 error_msg = f"OD camera thread error: {e}"
                 print(error_msg)
                 log_error("inference", "OD camera update failed", e, {
                     "camera_id": "OD",
                     "inspection_running": getattr(self.app, 'inspection_running', False)
                 })
-                # Set system error flag
                 if hasattr(self.app, 'shared_data') and self.app.shared_data:
                     self.app.shared_data['system_error'] = True
                 break
@@ -135,16 +118,13 @@ class InferenceTab:
         """Update Bigface camera feed display."""
         bf_feed = self.camera_manager.get_feed('bf')
         
-        # Optimize sleep timing for better performance
-        frame_delay = 0.025  # ~40 FPS target (reduced from 30ms)
+        frame_delay = 0.025
         
         while not self.app.camera_stop_flag.is_set():
             try:
-                # Check if feed still exists
                 if bf_feed is None or bf_feed.canvas is None:
                     break
                 
-               # Check if inspection is running by checking if processes exist
                 inspection_running = (
                     hasattr(self.app, 'processes') and 
                     self.app.processes is not None and 
@@ -153,7 +133,6 @@ class InferenceTab:
                 )
                 
                 if inspection_running:
-                    # Inspection is running - show live feed from shared memory
                     with self.app.annotated_frame_lock_bigface:
                         np_frame = np.frombuffer(
                             self.app.shared_annotated_bigface.get_obj(), 
@@ -161,23 +140,18 @@ class InferenceTab:
                         ).reshape(self.app.frame_shape)
                         frame = np_frame.copy()
                 else:
-                    # Inspection is stopped - show black screen
                     frame = np.zeros(self.app.frame_shape, dtype=np.uint8)
 
-                # Update the camera feed
                 bf_feed.update_frame(frame)
                 
-                # Optimized sleep
                 time.sleep(frame_delay)
             except Exception as e:
-                # Handle exceptions and exit gracefully
                 error_msg = f"BF camera thread error: {e}"
                 print(error_msg)
                 log_error("inference", "BF camera update failed", e, {
                     "camera_id": "BF",
                     "inspection_running": getattr(self.app, 'inspection_running', False)
                 })
-                # Set system error flag
                 if hasattr(self.app, 'shared_data') and self.app.shared_data:
                     self.app.shared_data['system_error'] = True
                 break
@@ -187,21 +161,18 @@ class InferenceTab:
         try:
             log_info("inference", "Starting camera feed threads")
             
-            # Clear stop flag
             self.app.camera_stop_flag.clear()
             
             self.app.od_thread = threading.Thread(target=self.update_od_camera, name="OD_Camera_Thread")
             self.app.od_thread.daemon = True
             self.app.od_thread.start()
             
-            # Register thread with process manager
             self.app.process_manager.register_inference_thread(self.app.od_thread)
             
             self.app.bf_thread = threading.Thread(target=self.update_bf_camera, name="BF_Camera_Thread")
             self.app.bf_thread.daemon = True
             self.app.bf_thread.start()
             
-            # Register thread with process manager
             self.app.process_manager.register_inference_thread(self.app.bf_thread)
             
             log_info("inference", "Camera feed threads started successfully")
@@ -214,54 +185,45 @@ class InferenceTab:
         """Monitor shared_data for status updates and update status panel."""
         try:
             if hasattr(self.app, 'shared_data') and self.app.shared_data and self.status_panel:
-                # Get system_ready flag (master control)
                 system_ready = self.app.shared_data.get('system_ready', False)
                 
                 if system_ready:
-                    # System is ready - show actual status
                     
-                    # Update Machine Mode based on system_mode flag
                     system_mode = self.app.shared_data.get('system_mode', False)
                     if system_mode:
-                        self.status_panel.update_machine_mode("AUTO", "#00ff00")  # Green
+                        self.status_panel.update_machine_mode("AUTO", "#00ff00")
                     else:
-                        self.status_panel.update_machine_mode("MANUAL", "#ff0000")  # Red
+                        self.status_panel.update_machine_mode("MANUAL", "#ff0000")
                     
-                    # Update Disc Status based on disc_status flag
                     disc_status = self.app.shared_data.get('disc_status', False)
                     if disc_status:
-                        self.status_panel.update_disc_status("READY", "#00ff00")  # Green
+                        self.status_panel.update_disc_status("READY", "#00ff00")
                     else:
-                        self.status_panel.update_disc_status("NOT READY", "#ff0000")  # Red
+                        self.status_panel.update_disc_status("NOT READY", "#ff0000")
                 else:
-                    # System is not ready - show "Not Available" in yellow for both
-                    self.status_panel.update_machine_mode("Not Available", "#ffff00")  # Yellow
-                    self.status_panel.update_disc_status("Not Available", "#ffff00")  # Yellow
+                    self.status_panel.update_machine_mode("Not Available", "#ffff00")
+                    self.status_panel.update_disc_status("Not Available", "#ffff00")
                 
-                # Update results panel from shared_data
                 if self.results_panel:
                     self.results_panel.update_from_shared_data(self.app.shared_data)
                 
-                # Update model names in status panel (less frequently)
                 if self.status_panel and not hasattr(self, '_model_update_counter'):
                     self._model_update_counter = 0
                 
                 if hasattr(self, '_model_update_counter'):
                     self._model_update_counter += 1
-                    if self._model_update_counter >= 10:  # Update every 5 seconds instead of 500ms
+                    if self._model_update_counter >= 10:
                         self.status_panel.update_model_names()
                         self._model_update_counter = 0
             
-            # Refresh roller list if data was updated (check flag)
             if hasattr(self.app, 'roller_data_updated') and self.app.roller_data_updated:
                 if self.status_panel and hasattr(self.status_panel, 'refresh_roller_list'):
                     self.status_panel.refresh_roller_list()
                 self.app.roller_data_updated = False
         except:
-            pass  # Silently continue on errors
+            pass
         
-        # Continue monitoring every 500ms
         try:
             self.parent.after(500, self._monitor_status_updates)
         except:
-            pass  # Tab might be destroyed
+            pass

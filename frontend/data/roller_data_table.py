@@ -24,12 +24,10 @@ class RollerDataTable:
         self.app = app_instance
         self.db = DataDatabase()
         
-        # Treeview widget
         self.tree = None
         
     def create(self):
         """Create the roller data table UI."""
-        # Main frame
         main_frame = tk.LabelFrame(
             self.parent,
             text="Roller Data",
@@ -41,15 +39,12 @@ class RollerDataTable:
         )
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         
-        # Create frame for treeview and scrollbar
         tree_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Create scrollbars
         vsb = ttk.Scrollbar(tree_frame, orient="vertical")
         hsb = ttk.Scrollbar(tree_frame, orient="horizontal")
         
-        # Create treeview
         columns = (
             "ID", "Roller Type", "Outer Diameter (mm)", "Dimple Diameter (mm)",
             "Small Diameter (mm)", "Length (mm)", "High Head (pixels)", "Down Head (pixels)"
@@ -67,7 +62,6 @@ class RollerDataTable:
         vsb.config(command=self.tree.yview)
         hsb.config(command=self.tree.xview)
         
-        # Configure column headings and widths
         column_widths = {
             "ID": 50,
             "Roller Type": 150,
@@ -83,7 +77,6 @@ class RollerDataTable:
             self.tree.heading(col, text=col)
             self.tree.column(col, width=column_widths[col], anchor="center")
         
-        # Grid layout
         self.tree.grid(row=0, column=0, sticky="nsew")
         vsb.grid(row=0, column=1, sticky="ns")
         hsb.grid(row=1, column=0, sticky="ew")
@@ -91,7 +84,6 @@ class RollerDataTable:
         tree_frame.grid_rowconfigure(0, weight=1)
         tree_frame.grid_columnconfigure(0, weight=1)
         
-        # Configure treeview style
         style = ttk.Style()
         style.theme_use("clam")
         style.configure("Treeview",
@@ -106,20 +98,16 @@ class RollerDataTable:
         style.map("Treeview",
                  background=[("selected", "#007BFF")])
         
-        # Bind double-click event
         self.tree.bind("<Double-1>", self._on_double_click)
     
     def load_roller_data(self):
         """Load roller data from database into table."""
         try:
-            # Clear existing data
             for item in self.tree.get_children():
                 self.tree.delete(item)
             
-            # Fetch data from database
             rollers = self.db.get_all_rollers()
             
-            # Insert data into table
             for roller in rollers:
                 self.tree.insert("", tk.END, values=(
                     roller['id'],
@@ -157,7 +145,6 @@ class RollerDataTable:
     
     def _on_double_click(self, event):
         """Handle double-click on table row."""
-        # Load selected roller into form
         selected = self.get_selected_roller()
         if selected and hasattr(self.app, 'data_tab') and self.app.data_tab:
             if self.app.data_tab.roller_info_panel:

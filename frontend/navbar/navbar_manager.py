@@ -32,7 +32,6 @@ class NavBarManager:
         
     def create(self):
         """Create the navigation bar with role-based access control."""
-        # Create navbar container frame
         self.navbar_frame = tk.Frame(
             self.parent,
             bg=Colors.PRIMARY_BG,
@@ -44,19 +43,15 @@ class NavBarManager:
             pady=NavConfig.NAVBAR_PADDING_Y
         )
         
-        # Create buttons container (left-aligned, not centered)
         buttons_container = tk.Frame(
             self.navbar_frame,
             bg=Colors.PRIMARY_BG
         )
         buttons_container.pack(anchor=tk.W, padx=5)
         
-        # Get current user role
         user_role = getattr(self.app, 'current_role', 'Operator') if self.app else 'Operator'
         
-        # Create navigation buttons based on role permissions
         for button_id, button_text, _ in NavConfig.get_button_configs():
-            # Check if user has permission to access this tab
             if self._can_access_tab(button_id, user_role):
                 nav_button = NavButton(
                     buttons_container,
@@ -82,23 +77,18 @@ class NavBarManager:
         Returns:
             bool: True if user can access, False otherwise
         """
-        # Model Management - Admin and Super Admin only
         if tab_id == "model_management":
             return Permissions.can_access_model_management_tab(user_role)
         
-        # User Management - Admin and Super Admin only
         elif tab_id == "user_management":
             return Permissions.can_access_user_management_tab(user_role)
         
-        # System Check - Admin and Super Admin only
         elif tab_id == "system_check":
             return Permissions.can_access_system_check_tab(user_role)
         
-        # Backup - Admin and Super Admin only
         elif tab_id == "backup":
             return Permissions.can_access_backup_tab(user_role)
         
-        # All other tabs - accessible to all roles
         else:
             return True
     
@@ -109,10 +99,8 @@ class NavBarManager:
         Args:
             button_id: ID of the clicked button
         """
-        # Update active state for all buttons
         self.set_active_button(button_id)
         
-        # Call the callback function
         if self.on_nav_change:
             self.on_nav_change(button_id)
     
@@ -123,11 +111,9 @@ class NavBarManager:
         Args:
             button_id: ID of the button to set as active
         """
-        # Deactivate previously active button
         if self.active_button_id and self.active_button_id in self.buttons:
             self.buttons[self.active_button_id].set_active(False)
         
-        # Activate new button
         if button_id in self.buttons:
             self.buttons[button_id].set_active(True)
             self.active_button_id = button_id

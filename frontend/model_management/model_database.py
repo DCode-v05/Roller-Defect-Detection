@@ -17,7 +17,6 @@ class ModelDatabase:
     def __init__(self):
         """Initialize database connection parameters."""
 
-        # Default values from AppConfig
         self.host = AppConfig.DB_HOST
         self.port = AppConfig.DB_PORT
         self.user = AppConfig.DB_USER
@@ -64,10 +63,8 @@ class ModelDatabase:
         try:
             cursor = self.connection.cursor()
             
-            # Determine which table to use
             table = "bf_models" if model_type == "BIGFACE" else "od_models"
             
-            # Insert query
             insert_query = f"""
             INSERT INTO {table} (model_name, model_path, uploaded_by)
             VALUES (%s, %s, %s)
@@ -102,7 +99,6 @@ class ModelDatabase:
             cursor = self.connection.cursor(dictionary=True)
             models = []
             
-            # Determine which tables to query
             if filter_type == "BIGFACE":
                 tables = [("bf_models", "BIGFACE")]
             elif filter_type == "OD":
@@ -110,7 +106,6 @@ class ModelDatabase:
             else:
                 tables = [("bf_models", "BIGFACE"), ("od_models", "OD")]
             
-            # Query each table
             for table, model_type in tables:
                 query = f"""
                 SELECT id, model_name, model_path, upload_date, uploaded_by
@@ -121,7 +116,6 @@ class ModelDatabase:
                 cursor.execute(query)
                 results = cursor.fetchall()
                 
-                # Add model type to results
                 for result in results:
                     result['model_type'] = model_type
                     models.append(result)
@@ -150,10 +144,8 @@ class ModelDatabase:
         try:
             cursor = self.connection.cursor()
             
-            # Determine which table to use
             table = "bf_models" if model_type == "BIGFACE" else "od_models"
             
-            # Delete query
             delete_query = f"""
             DELETE FROM {table}
             WHERE id = %s
@@ -187,10 +179,8 @@ class ModelDatabase:
         try:
             cursor = self.connection.cursor()
             
-            # Determine which table to use
             table = "bf_models" if model_type == "BIGFACE" else "od_models"
             
-            # Update query
             update_query = f"""
             UPDATE {table}
             SET model_name = %s

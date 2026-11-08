@@ -27,33 +27,27 @@ class ModelDetailsDialog:
         
     def show(self):
         """Display the details dialog."""
-        # Create top-level window
         self.dialog = tk.Toplevel(self.parent)
         self.dialog.title(f"Model Details - {self.model_data['model_name']}")
         self.dialog.geometry("900x650")
         self.dialog.configure(bg=Colors.PRIMARY_BG)
         self.dialog.resizable(False, False)
         
-        # Center window
         self.dialog.update_idletasks()
         x = (self.dialog.winfo_screenwidth() // 2) - (900 // 2)
         y = (self.dialog.winfo_screenheight() // 2) - (650 // 2)
         self.dialog.geometry(f"900x650+{x}+{y}")
         
-        # Make dialog modal
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Create content
         self._create_content()
         
     def _create_content(self):
         """Create dialog content."""
-        # Main container
         main_frame = tk.Frame(self.dialog, bg=Colors.PRIMARY_BG)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        # Title
         title_label = tk.Label(
             main_frame,
             text=f"📋 {self.model_data['model_name']}",
@@ -63,15 +57,12 @@ class ModelDetailsDialog:
         )
         title_label.pack(pady=(0, 15))
         
-        # Create two-column layout
         content_container = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         content_container.pack(fill=tk.BOTH, expand=True)
         
-        # Left column - Model Info
         left_column = tk.Frame(content_container, bg=Colors.PRIMARY_BG)
         left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         
-        # Model Info Frame
         info_frame = tk.LabelFrame(
             left_column,
             text="Model Information",
@@ -86,17 +77,14 @@ class ModelDetailsDialog:
         info_container = tk.Frame(info_frame, bg=Colors.PRIMARY_BG)
         info_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        # Display model information
         self._create_info_row(info_container, "Model ID:", str(self.model_data['id']))
         self._create_info_row(info_container, "Model Type:", self.model_data['model_type'])
         self._create_info_row(info_container, "Upload Date:", str(self.model_data['upload_date']))
         self._create_info_row(info_container, "Uploaded By:", self.model_data['uploaded_by'])
         
-        # File size
         file_size = self._get_file_size(self.model_data['model_path'])
         self._create_info_row(info_container, "File Size:", file_size)
         
-        # File path (wrapped)
         path_frame = tk.Frame(info_container, bg=Colors.PRIMARY_BG)
         path_frame.pack(fill=tk.X, pady=8)
         
@@ -122,11 +110,9 @@ class ModelDetailsDialog:
         )
         path_value.pack(anchor=tk.W, padx=(10, 0))
         
-        # Right column - Classes
         right_column = tk.Frame(content_container, bg=Colors.PRIMARY_BG)
         right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0))
         
-        # Classes Frame
         classes_frame = tk.LabelFrame(
             right_column,
             text="Trained Classes",
@@ -138,10 +124,8 @@ class ModelDetailsDialog:
         )
         classes_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Load and display classes
         self._display_classes(classes_frame)
         
-        # Close button at bottom
         close_button = tk.Button(
             main_frame,
             text="Close",
@@ -162,7 +146,6 @@ class ModelDetailsDialog:
         row_frame = tk.Frame(parent, bg=Colors.PRIMARY_BG)
         row_frame.pack(fill=tk.X, pady=8)
         
-        # Two-line layout for better readability
         label = tk.Label(
             row_frame,
             text=label_text,
@@ -189,7 +172,6 @@ class ModelDetailsDialog:
             if os.path.exists(file_path):
                 size_bytes = os.path.getsize(file_path)
                 
-                # Convert to appropriate unit
                 if size_bytes < 1024:
                     return f"{size_bytes} bytes"
                 elif size_bytes < 1024 * 1024:
@@ -208,7 +190,6 @@ class ModelDetailsDialog:
         classes_container = tk.Frame(parent, bg=Colors.PRIMARY_BG)
         classes_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        # Loading label
         loading_label = tk.Label(
             classes_container,
             text="Loading model classes...",
@@ -218,11 +199,9 @@ class ModelDetailsDialog:
         )
         loading_label.pack(pady=20)
         
-        # Update dialog to show loading
         self.dialog.update()
         
         try:
-            # Load model
             model_path = self.model_data['model_path']
             
             if not os.path.exists(model_path):
@@ -232,16 +211,12 @@ class ModelDetailsDialog:
                 )
                 return
             
-            # Load YOLO model
             model = YOLO(model_path)
             
-            # Get class names
             class_names = model.names
             
-            # Clear loading label
             loading_label.destroy()
             
-            # Display class count header
             header_frame = tk.Frame(classes_container, bg=Colors.SECONDARY_BG)
             header_frame.pack(fill=tk.X, pady=(0, 10))
             
@@ -256,11 +231,9 @@ class ModelDetailsDialog:
             )
             count_label.pack()
             
-            # Create frame for classes grid (no scrollbar needed)
             classes_grid_frame = tk.Frame(classes_container, bg=Colors.PRIMARY_BG)
             classes_grid_frame.pack(fill=tk.BOTH, expand=True)
             
-            # Display classes in a 2-column grid
             col_count = 2
             row = 0
             col = 0
@@ -274,11 +247,9 @@ class ModelDetailsDialog:
                 )
                 class_frame.grid(row=row, column=col, padx=5, pady=4, sticky="ew")
                 
-                # Inner container for padding
                 inner = tk.Frame(class_frame, bg=Colors.SECONDARY_BG)
                 inner.pack(fill=tk.X, padx=8, pady=4)
                 
-                # Class ID and name on same line
                 class_text = tk.Label(
                     inner,
                     text=f"[{class_id}]  {class_name}",
@@ -294,7 +265,6 @@ class ModelDetailsDialog:
                     col = 0
                     row += 1
             
-            # Configure grid weights for equal column widths
             for i in range(col_count):
                 classes_grid_frame.grid_columnconfigure(i, weight=1, uniform="classes")
             

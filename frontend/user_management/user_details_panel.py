@@ -23,7 +23,6 @@ class UserDetailsPanel:
         self.parent = parent
         self.tab = tab_instance
         
-        # Input variables
         self.employee_id_var = None
         self.email_var = None
         self.role_var = None
@@ -31,7 +30,6 @@ class UserDetailsPanel:
         self.new_password_var = None
         self.confirm_password_var = None
         
-        # Widget references
         self.employee_id_entry = None
         self.email_entry = None
         self.role_combo = None
@@ -40,23 +38,19 @@ class UserDetailsPanel:
         self.new_password_entry = None
         self.confirm_password_entry = None
         
-        # Frame references
         self.main_frame = None
         self.details_frame = None
         self.user_info_frame = None
         self.password_frame = None
         self.save_button = None
         
-        # Current user data
         self.current_user_id = None
-        self.original_data = {}  # Store original data for comparison
+        self.original_data = {}
         
-        # Form mode: 'hidden', 'add', 'read', 'update', 'change_password'
         self.form_mode = 'hidden'
     
     def create(self):
         """Create the user details panel UI."""
-        # Main frame - compact
         self.main_frame = tk.LabelFrame(
             self.parent,
             text="👤 User Details",
@@ -68,7 +62,6 @@ class UserDetailsPanel:
         )
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Initialize StringVars
         self.employee_id_var = tk.StringVar()
         self.email_var = tk.StringVar()
         self.role_var = tk.StringVar()
@@ -76,7 +69,6 @@ class UserDetailsPanel:
         self.new_password_var = tk.StringVar()
         self.confirm_password_var = tk.StringVar()
         
-        # Trace changes for update mode
         self.employee_id_var.trace('w', self._on_field_change)
         self.email_var.trace('w', self._on_field_change)
         self.role_var.trace('w', self._on_field_change)
@@ -85,7 +77,7 @@ class UserDetailsPanel:
     def show_add_form(self):
         """Show form for adding new user."""
         self.form_mode = 'add'
-        self._destroy_all_forms()  # Destroy any existing forms first
+        self._destroy_all_forms()
         self._create_user_info_form()
         self._create_password_form()
         self._create_save_button("Save User")
@@ -94,26 +86,23 @@ class UserDetailsPanel:
     def show_read_form(self, user_data):
         """Show form for reading user details (read-only)."""
         self.form_mode = 'read'
-        self._destroy_all_forms()  # Destroy any existing forms first
+        self._destroy_all_forms()
         self._create_user_info_form(readonly=True)
         self.populate(user_data)
-        # No save button for read mode
     
     def show_update_form(self, user_data):
         """Show form for updating user (no password fields)."""
         self.form_mode = 'update'
         self.original_data = user_data.copy()
-        self._destroy_all_forms()  # Destroy any existing forms first
+        self._destroy_all_forms()
         self._create_user_info_form(readonly=False)
         self.populate(user_data)
-        # Save button will be shown only if data changes
     
     def show_password_form(self, user_data):
         """Show form for changing password only."""
         self.form_mode = 'change_password'
-        self._destroy_all_forms()  # Destroy any existing forms first
+        self._destroy_all_forms()
         
-        # Show basic user info (read-only)
         info_frame = tk.Frame(self.main_frame, bg=Colors.PRIMARY_BG)
         info_frame.pack(fill=tk.X, padx=10, pady=10)
         
@@ -133,12 +122,10 @@ class UserDetailsPanel:
             bg=Colors.PRIMARY_BG
         ).pack(anchor=tk.W, pady=(5, 0))
         
-        # Show password form
         self._create_password_form()
         self._create_save_button("Update Password")
         self.current_user_id = user_data.get('id')
         
-        # Get current password hash and salt for comparison
         self.current_password_hash = user_data.get('password_hash', '')
         self.current_salt = user_data.get('salt', '')
     
@@ -150,11 +137,9 @@ class UserDetailsPanel:
     
     def _destroy_all_forms(self):
         """Destroy all form widgets."""
-        # Destroy all children of main_frame
         for widget in self.main_frame.winfo_children():
             widget.destroy()
         
-        # Clear references
         self.user_info_frame = None
         self.password_frame = None
         self.save_button = None
@@ -164,7 +149,6 @@ class UserDetailsPanel:
         self.user_info_frame = tk.Frame(self.main_frame, bg=Colors.PRIMARY_BG)
         self.user_info_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Employee ID
         self._create_field(
             self.user_info_frame,
             "👤 Employee ID:",
@@ -172,7 +156,6 @@ class UserDetailsPanel:
             readonly
         )
         
-        # Email Address
         self._create_field(
             self.user_info_frame,
             "📧 Email Address:",
@@ -180,10 +163,8 @@ class UserDetailsPanel:
             readonly
         )
         
-        # Role
         self._create_role_field(self.user_info_frame, readonly)
         
-        # Account Status
         self._create_status_section(self.user_info_frame, readonly)
     
     def _create_password_form(self):
@@ -199,7 +180,6 @@ class UserDetailsPanel:
         )
         self.password_frame.pack(fill=tk.X, padx=10, pady=8)
         
-        # New Password
         pwd_frame = tk.Frame(self.password_frame, bg=Colors.PRIMARY_BG)
         pwd_frame.pack(fill=tk.X, padx=10, pady=(5, 3))
         
@@ -224,7 +204,6 @@ class UserDetailsPanel:
         )
         self.new_password_entry.pack(fill=tk.X)
         
-        # Confirm Password
         confirm_frame = tk.Frame(self.password_frame, bg=Colors.PRIMARY_BG)
         confirm_frame.pack(fill=tk.X, padx=10, pady=(3, 5))
         
@@ -296,7 +275,6 @@ class UserDetailsPanel:
         )
         entry.pack(fill=tk.X)
         
-        # Store references
         if field_name == "employee_id":
             self.employee_id_entry = entry
         elif field_name == "email":
@@ -320,10 +298,8 @@ class UserDetailsPanel:
         style = ttk.Style()
         style.configure("UserRole.TCombobox", fieldbackground=Colors.WHITE)
         
-        # Get current user's role to filter available roles
         current_user_role = getattr(self.tab.app, 'current_role', 'Operator')
         
-        # Determine available roles
         if Permissions.can_manage_super_admin(current_user_role):
             available_roles = ["Admin", "Super Admin", "Operator"]
         else:
@@ -393,7 +369,6 @@ class UserDetailsPanel:
     def _on_field_change(self, *args):
         """Handle field changes in update mode."""
         if self.form_mode == 'update':
-            # Check if data has changed
             current_data = {
                 'employee_id': self.employee_id_var.get().strip(),
                 'email': self.email_var.get().strip(),
@@ -401,7 +376,6 @@ class UserDetailsPanel:
                 'is_active': bool(self.status_var.get())
             }
             
-            # Compare with original
             has_changes = (
                 current_data['employee_id'] != self.original_data.get('employee_id', '') or
                 current_data['email'] != self.original_data.get('email', '') or
@@ -409,7 +383,6 @@ class UserDetailsPanel:
                 current_data['is_active'] != self.original_data.get('is_active', True)
             )
             
-            # Show/hide save button based on changes
             if has_changes and not self.save_button:
                 self._create_save_button("Save Changes")
             elif not has_changes and self.save_button:
@@ -437,7 +410,6 @@ class UserDetailsPanel:
         self.role_var.set(user_data.get('role', ''))
         self.status_var.set(1 if user_data.get('is_active') else 0)
         
-        # Clear password fields
         self.new_password_var.set('')
         self.confirm_password_var.set('')
     

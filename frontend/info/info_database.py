@@ -59,16 +59,13 @@ class InfoDatabase:
         try:
             if not self.connection or not self.connection.is_connected():
                 if not self.connect():
-                    # Connection failed, return default
                     return "WELVISION"
             
-            # Check if connection is still None after connect attempt
             if not self.connection:
                 return "WELVISION"
             
             cursor = self.connection.cursor()
             
-            # Create table if not exists
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS app_settings (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -79,7 +76,6 @@ class InfoDatabase:
                 )
             """)
             
-            # Get title
             cursor.execute("SELECT setting_value FROM app_settings WHERE setting_key = 'app_title'")
             result = cursor.fetchone()
             
@@ -109,16 +105,13 @@ class InfoDatabase:
         try:
             if not self.connection or not self.connection.is_connected():
                 if not self.connect():
-                    # Connection failed
                     return False
             
-            # Check if connection is still None after connect attempt
             if not self.connection:
                 return False
             
             cursor = self.connection.cursor()
             
-            # Create table if not exists
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS app_settings (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -129,7 +122,6 @@ class InfoDatabase:
                 )
             """)
             
-            # Update or insert title
             cursor.execute("""
                 INSERT INTO app_settings (setting_key, setting_value, updated_by)
                 VALUES ('app_title', %s, %s)
@@ -164,10 +156,8 @@ class InfoDatabase:
         try:
             if not self.connection or not self.connection.is_connected():
                 if not self.connect():
-                    # Connection failed
                     return []
             
-            # Check if connection is still None after connect attempt
             if not self.connection:
                 return []
             
@@ -175,7 +165,6 @@ class InfoDatabase:
             
             results = []
             
-            # Query BF history if needed
             if filter_type in ['BF', 'Overall']:
                 query = """
                     SELECT id, 'BF' as type, model_name, employee_id, change_timestamp, 
@@ -188,7 +177,6 @@ class InfoDatabase:
                 bf_results = cursor.fetchall()
                 results.extend(bf_results)
             
-            # Query OD history if needed
             if filter_type in ['OD', 'Overall']:
                 query = """
                     SELECT id, 'OD' as type, model_name, employee_id, change_timestamp, 
@@ -203,7 +191,6 @@ class InfoDatabase:
             
             cursor.close()
             
-            # Sort by timestamp descending
             results.sort(key=lambda x: x[4], reverse=True)
             
             return results
@@ -228,20 +215,16 @@ class InfoDatabase:
         try:
             if not self.connection or not self.connection.is_connected():
                 if not self.connect():
-                    # Connection failed
                     return False
             
-            # Check if connection is still None after connect attempt
             if not self.connection:
                 return False
             
             cursor = self.connection.cursor()
             
-            # Clear BF history if needed
             if filter_type in ['BF', 'Overall']:
                 cursor.execute("DELETE FROM bf_threshold_history")
             
-            # Clear OD history if needed
             if filter_type in ['OD', 'Overall']:
                 cursor.execute("DELETE FROM od_threshold_history")
             

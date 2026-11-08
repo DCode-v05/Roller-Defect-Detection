@@ -25,12 +25,10 @@ class SystemInformation:
         self.parent = parent
         self.app = app_instance
         
-        # UI elements
         self.info_text = None
     
     def create(self):
         """Create the system information UI."""
-        # Main frame
         main_frame = tk.LabelFrame(
             self.parent,
             text="System Information",
@@ -42,7 +40,6 @@ class SystemInformation:
         )
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Buttons frame
         buttons_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         buttons_frame.pack(fill=tk.X, padx=10, pady=10)
         
@@ -50,7 +47,7 @@ class SystemInformation:
             buttons_frame,
             text="� Refresh System",
             font=Fonts.TEXT_BOLD,
-            bg="#007BFF",  # Blue
+            bg="#007BFF",
             fg=Colors.WHITE,
             activebackground="#0056b3",
             activeforeground=Colors.WHITE,
@@ -59,20 +56,17 @@ class SystemInformation:
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=5)
         
-        # Info text frame with scrollbar
         text_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         
-        # Scrollbar
         scrollbar = tk.Scrollbar(text_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Text widget
         self.info_text = tk.Text(
             text_frame,
             font=("Consolas", 9),
             bg="#1E1E1E",
-            fg="#00FF00",  # Green text
+            fg="#00FF00",
             insertbackground=Colors.WHITE,
             yscrollcommand=scrollbar.set,
             height=12,
@@ -82,7 +76,6 @@ class SystemInformation:
         
         scrollbar.config(command=self.info_text.yview)
         
-        # Load initial system info
         self.load_system_info()
     
     def load_system_info(self):
@@ -91,15 +84,12 @@ class SystemInformation:
         self.info_text.delete(1.0, tk.END)
         
         try:
-            # Check PLC connection
             plc_status, plc_connected = self._check_plc_connection()
             
-            # Check camera connections
             camera_status, cameras_connected = self._check_cameras()
             
-            # System ready status
             connected_devices = (1 if plc_connected else 0) + cameras_connected
-            total_devices = 3  # 1 PLC + 2 Cameras
+            total_devices = 3
             
             if connected_devices == total_devices:
                 system_ready = f"✅ Yes - All devices connected: {connected_devices}/{total_devices}"
@@ -136,7 +126,6 @@ System Ready: {system_ready}
             plc_client = snap7.client.Client()
             plc_client.connect("172.17.8.17", 0, 1)
             
-            # Try to read a small area to verify connection
             data = plc_client.read_area(Areas.DB, 86, 0, 1)
             plc_client.disconnect()
             
@@ -160,7 +149,6 @@ System Ready: {system_ready}
             try:
                 cap = cv2.VideoCapture(index)
                 if cap.isOpened():
-                    # Try to read a frame to verify it's actually working
                     ret, _ = cap.read()
                     if ret:
                         connected_cameras += 1
@@ -180,7 +168,6 @@ System Ready: {system_ready}
     def refresh_system(self):
         """Refresh system status information."""
         try:
-            # Reload system info
             self.load_system_info()
             messagebox.showinfo("Success", "System status refreshed successfully!")
         except Exception as e:

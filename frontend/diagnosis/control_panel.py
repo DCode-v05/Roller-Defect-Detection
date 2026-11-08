@@ -27,19 +27,16 @@ class ControlPanel:
         self.parent = parent
         self.tab = tab_instance
         
-        # Filter variables
         self.report_type_var = tk.StringVar(value="Overall")
         self.component_type_var = tk.StringVar(value="Small")
         self.from_date_var = tk.StringVar(value=date.today().strftime('%Y-%m-%d'))
         self.to_date_var = tk.StringVar(value=date.today().strftime('%Y-%m-%d'))
         
-        # Store DateEntry widgets for later access
         self.from_date_entry = None
         self.to_date_entry = None
         
     def create(self):
         """Create the control panel UI with two-column layout."""
-        # Container frame
         container = tk.LabelFrame(
             self.parent,
             text="Controls",
@@ -51,15 +48,12 @@ class ControlPanel:
         )
         container.pack(fill=tk.BOTH, pady=(0, 10))
         
-        # Inner frame for padding (reduced padding)
         inner_frame = tk.Frame(container, bg=Colors.PRIMARY_BG)
         inner_frame.pack(fill=tk.BOTH, padx=8, pady=5)
         
-        # LEFT COLUMN
         left_column = tk.Frame(inner_frame, bg=Colors.PRIMARY_BG)
         left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
         
-        # Report Type (Left)
         report_type_label = tk.Label(
             left_column,
             text="Report Type",
@@ -79,7 +73,6 @@ class ControlPanel:
         )
         report_type_combo.pack(fill=tk.X, pady=(0, 8))
         
-        # From Date (Left) - Calendar Widget
         from_date_label = tk.Label(
             left_column,
             text="From Date",
@@ -98,16 +91,14 @@ class ControlPanel:
             borderwidth=2,
             date_pattern='yyyy-mm-dd',
             width=12,
-            maxdate=date.today()  # Cannot select future dates
+            maxdate=date.today()
         )
         self.from_date_entry.pack(fill=tk.X, pady=(0, 5))
         self.from_date_entry.bind("<<DateEntrySelected>>", self._on_from_date_change)
         
-        # RIGHT COLUMN
         right_column = tk.Frame(inner_frame, bg=Colors.PRIMARY_BG)
         right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
         
-        # Component Type (Right)
         component_type_label = tk.Label(
             right_column,
             text="Component Type",
@@ -117,10 +108,8 @@ class ControlPanel:
         )
         component_type_label.pack(anchor=tk.W, pady=(0, 2))
         
-        # Get roller types from database
         roller_types = self._get_roller_types()
         
-        # Add "All" option at the beginning
         roller_types_with_all = ["All"] + roller_types
         
         component_type_combo = ttk.Combobox(
@@ -133,10 +122,8 @@ class ControlPanel:
         )
         component_type_combo.pack(fill=tk.X, pady=(0, 8))
         
-        # Set default value to "All"
         self.component_type_var.set("All")
         
-        # To Date (Right) - Calendar Widget
         to_date_label = tk.Label(
             right_column,
             text="To Date",
@@ -155,7 +142,7 @@ class ControlPanel:
             borderwidth=2,
             date_pattern='yyyy-mm-dd',
             width=12,
-            maxdate=date.today()  # Cannot select future dates
+            maxdate=date.today()
         )
         self.to_date_entry.pack(fill=tk.X, pady=(0, 5))
         self.to_date_entry.bind("<<DateEntrySelected>>", self._on_to_date_change)
@@ -167,12 +154,10 @@ class ControlPanel:
             to_date = datetime.strptime(self.to_date_var.get(), '%Y-%m-%d').date()
             today = date.today()
             
-            # Ensure From Date <= Today
             if from_date > today:
                 self.from_date_var.set(today.strftime('%Y-%m-%d'))
                 from_date = today
             
-            # Ensure From Date <= To Date
             if from_date > to_date:
                 self.to_date_var.set(from_date.strftime('%Y-%m-%d'))
                 
@@ -186,12 +171,10 @@ class ControlPanel:
             to_date = datetime.strptime(self.to_date_var.get(), '%Y-%m-%d').date()
             today = date.today()
             
-            # Ensure To Date <= Today
             if to_date > today:
                 self.to_date_var.set(today.strftime('%Y-%m-%d'))
                 to_date = today
             
-            # Ensure From Date <= To Date
             if to_date < from_date:
                 self.from_date_var.set(to_date.strftime('%Y-%m-%d'))
                 
@@ -240,7 +223,6 @@ class ControlPanel:
             to_date = datetime.strptime(self.to_date_var.get(), '%Y-%m-%d').date()
             today = date.today()
             
-            # Final validation before returning
             if from_date > to_date:
                 from tkinter import messagebox
                 messagebox.showerror("Invalid Date Range", "From Date must be less than or equal to To Date!")

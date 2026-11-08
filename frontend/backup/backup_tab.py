@@ -25,7 +25,6 @@ class BackupTab:
         self.parent = parent
         self.app = app_instance
         
-        # Component managers
         self.image_manager = None
         self.database_manager = None
         
@@ -34,11 +33,9 @@ class BackupTab:
         try:
             log_info("backup", "Setting up Backup tab")
             
-            # Main container - no scrolling
             main_container = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
             main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
             
-            # Title
             title_label = tk.Label(
                 main_container,
                 text="Backup & Restore Management",
@@ -48,7 +45,6 @@ class BackupTab:
             )
             title_label.pack(pady=(5, 2))
             
-            # Subtitle
             subtitle_label = tk.Label(
                 main_container,
                 text="Database Backup & Inference Images Backup",
@@ -58,11 +54,9 @@ class BackupTab:
             )
             subtitle_label.pack(pady=(0, 8))
             
-            # Create horizontal layout for two sections side by side
             sections_container = tk.Frame(main_container, bg=Colors.PRIMARY_BG)
             sections_container.pack(fill=tk.X, pady=5)
             
-            # ============= DATABASE BACKUP SECTION (LEFT) =============
             db_section_frame = tk.LabelFrame(
                 sections_container,
                 text="💾 Database Backup & Restore",
@@ -76,11 +70,9 @@ class BackupTab:
             )
             db_section_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 5), anchor=tk.N)
             
-            # Create database backup manager and UI
             self.database_manager = DatabaseBackupManager(self.parent)
             self.database_manager.create_ui(db_section_frame)
             
-            # ============= IMAGE BACKUP SECTION (RIGHT) =============
             image_section_frame = tk.LabelFrame(
                 sections_container,
                 text="🖼️ Inference Images Backup",
@@ -94,7 +86,6 @@ class BackupTab:
             )
             image_section_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 5), anchor=tk.N)
             
-            # Create image backup manager and UI
             self.image_manager = ImageBackupManager(self.parent)
             self.image_manager.create_ui(image_section_frame)
             

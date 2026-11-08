@@ -13,7 +13,6 @@ from .debug_logger import log_error, log_warning
 class DatabaseErrorHandler:
     """Centralized database error handling with user-friendly popups."""
     
-    # Class variable to track if error was shown for current page
     _error_shown_for_page = {}
     _current_page = None
     
@@ -27,7 +26,6 @@ class DatabaseErrorHandler:
             page_name: Name of the current page/tab
         """
         DatabaseErrorHandler._current_page = page_name
-        # Reset error shown flag for new page
         if page_name not in DatabaseErrorHandler._error_shown_for_page:
             DatabaseErrorHandler._error_shown_for_page[page_name] = False
     
@@ -59,10 +57,8 @@ class DatabaseErrorHandler:
         Returns:
             bool: False to indicate error occurred
         """
-        # Don't show popup on login page or if already shown for this page
         current_page = DatabaseErrorHandler._current_page
         
-        # Log the error to debug logger
         if current_page:
             error_details = {
                 "error_type": type(error).__name__,
@@ -80,34 +76,27 @@ class DatabaseErrorHandler:
                 additional_info=error_details
             )
         
-        # Skip popup on login page
         if current_page == "login":
             return False
         
-        # Check if error already shown for this page
         if current_page and DatabaseErrorHandler._error_shown_for_page.get(current_page, False):
-            # Error already shown for this page, don't show again
             return False
         
-        # Show error popup
         if show_popup and current_page:
             error_message = str(error)
             
-            # Check if it's a connection/authentication error
             if isinstance(error, mysql.connector.Error):
-                if error.errno == 1045:  # Access denied
+                if error.errno == 1045:
                     DatabaseErrorHandler._show_access_denied_error(parent_widget)
-                elif error.errno == 2003:  # Can't connect to MySQL server
+                elif error.errno == 2003:
                     DatabaseErrorHandler._show_connection_error(parent_widget)
-                elif error.errno == 1049:  # Unknown database
+                elif error.errno == 1049:
                     DatabaseErrorHandler._show_unknown_database_error(parent_widget)
                 else:
                     DatabaseErrorHandler._show_generic_db_error(error_message, context, parent_widget)
             else:
-                # Generic error
                 DatabaseErrorHandler._show_generic_db_error(error_message, context, parent_widget)
             
-            # Mark that error has been shown for this page
             DatabaseErrorHandler._error_shown_for_page[current_page] = True
         
         return False

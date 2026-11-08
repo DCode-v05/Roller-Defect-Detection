@@ -25,7 +25,6 @@ class ThresholdPanel:
         
     def setup(self):
         """Setup the threshold panel UI."""
-        # Main threshold panel
         threshold_panel = tk.LabelFrame(
             self.parent,
             text="Defect Threshold Controls",
@@ -36,7 +35,6 @@ class ThresholdPanel:
         )
         threshold_panel.pack(fill=tk.BOTH, padx=10, pady=5, expand=True)
         
-        # OD Thresholds
         od_frame = self._create_threshold_section(
             threshold_panel,
             "OD Defect Thresholds",
@@ -46,7 +44,6 @@ class ThresholdPanel:
             is_od=True
         )
         
-        # Bigface Thresholds
         bf_frame = self._create_threshold_section(
             threshold_panel,
             "BIG FACE Defect Thresholds",
@@ -56,7 +53,6 @@ class ThresholdPanel:
             is_od=False
         )
         
-        # Configure grid weights
         threshold_panel.grid_columnconfigure(0, weight=1)
         threshold_panel.grid_columnconfigure(1, weight=1)
         
@@ -77,7 +73,6 @@ class ThresholdPanel:
         Returns:
             Created frame
         """
-        # Create labeled frame
         section_frame = tk.LabelFrame(
             parent,
             text=title,
@@ -88,7 +83,6 @@ class ThresholdPanel:
         )
         section_frame.grid(row=row, column=column, padx=10, pady=10, sticky="nsew")
         
-        # Create scrollable canvas with optimized scrolling
         canvas = tk.Canvas(section_frame, bg=Colors.PRIMARY_BG, highlightthickness=0, height=200)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
@@ -97,7 +91,6 @@ class ThresholdPanel:
         
         canvas.configure(yscrollcommand=scrollbar.set)
         
-        # Debounced scroll region update
         scroll_update_id = None
         
         def update_scroll_region(event=None):
@@ -108,7 +101,6 @@ class ThresholdPanel:
         
         canvas.bind('<Configure>', update_scroll_region)
         
-        # Optimized mousewheel scrolling
         def on_mousewheel(event):
             canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
         
@@ -121,21 +113,18 @@ class ThresholdPanel:
         canvas.bind("<Enter>", bind_mousewheel)
         canvas.bind("<Leave>", unbind_mousewheel)
         
-        # Create frame for sliders
         sliders_frame = tk.Frame(canvas, bg=Colors.PRIMARY_BG)
         canvas.create_window((0, 0), window=sliders_frame, anchor="nw")
         
-        # Create sliders for each defect type
         if thresholds:
             for idx, (defect, value) in enumerate(thresholds.items()):
                 self._create_slider(sliders_frame, defect, value, idx, is_od)
         else:
-            # Show message when no thresholds available
             no_data_label = tk.Label(
                 sliders_frame,
                 text="No threshold data available",
                 font=Fonts.TEXT,
-                fg="#ffff00",  # Yellow
+                fg="#ffff00",
                 bg=Colors.PRIMARY_BG,
                 pady=20
             )
@@ -154,11 +143,9 @@ class ThresholdPanel:
             row: Grid row position
             is_od: Whether this is for OD camera
         """
-        # Container frame
         frame = tk.Frame(parent, bg=Colors.PRIMARY_BG)
         frame.grid(row=row, column=0, sticky="ew", padx=10, pady=5)
         
-        # Label
         label = tk.Label(
             frame,
             text=defect_name,
@@ -170,7 +157,6 @@ class ThresholdPanel:
         )
         label.pack(side=tk.LEFT, padx=5)
         
-        # Slider
         slider = ttk.Scale(
             frame,
             from_=0,
@@ -181,7 +167,6 @@ class ThresholdPanel:
         slider.set(default_value)
         slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         
-        # Value label
         value_label = tk.Label(
             frame,
             text=f"{default_value}%",
@@ -192,13 +177,11 @@ class ThresholdPanel:
         )
         value_label.pack(side=tk.RIGHT, padx=5)
         
-        # Configure slider command
         slider.configure(
             command=lambda val, lbl=value_label, defect=defect_name, is_od_val=is_od:
                 self._update_threshold(val, lbl, defect, is_od_val)
         )
         
-        # Store slider reference
         key = f"{'od' if is_od else 'bf'}_{defect_name}"
         self.slider_values[key] = slider
     
@@ -212,10 +195,8 @@ class ThresholdPanel:
             defect: Defect name
             is_od: Whether this is for OD camera
         """
-        # Update label
         label.config(text=f"{int(float(val))}%")
         
-        # Update threshold in app
         if is_od:
             self.app.od_defect_thresholds[defect] = int(float(val))
         else:

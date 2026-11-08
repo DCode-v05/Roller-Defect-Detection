@@ -24,7 +24,6 @@ class DatabaseConfig:
         self.parent = parent
         self.app = app_instance
         
-        # UI elements
         self.host_entry = None
         self.port_entry = None
         self.database_entry = None
@@ -34,33 +33,29 @@ class DatabaseConfig:
     
     def create(self):
         """Create the database configuration UI."""
-        # Main frame with border
         main_frame = tk.LabelFrame(
             self.parent,
             text="🔧 MySQL Database Configuration",
             font=Fonts.HEADER,
-            fg="#00FF00",  # Green
+            fg="#00FF00",
             bg=Colors.PRIMARY_BG,
             bd=2,
             relief=tk.RIDGE
         )
         main_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        # Inner container
         container = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         container.pack(fill=tk.X, padx=20, pady=15)
         
-        # Section title
         section_title = tk.Label(
             container,
             text="🔌 Configure Database Connection",
             font=Fonts.TEXT_BOLD,
-            fg="#00FF00",  # Green
+            fg="#00FF00",
             bg=Colors.PRIMARY_BG
         )
         section_title.pack(anchor=tk.W, pady=(0, 10))
         
-        # Current configuration display
         config_frame = tk.LabelFrame(
             container,
             text="Current Configuration",
@@ -71,50 +66,40 @@ class DatabaseConfig:
         )
         config_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Config text widget
         self.config_text = tk.Text(
             config_frame,
             font=("Consolas", 9),
             bg="#1E1E1E",
-            fg="#00FF00",  # Green text
+            fg="#00FF00",
             height=4,
             wrap=tk.NONE
         )
         self.config_text.pack(fill=tk.X, padx=10, pady=10)
         self.config_text.config(state=tk.DISABLED)
         
-        # Update current config display
         self._update_config_display()
         
-        # Configuration fields frame
         fields_frame = tk.Frame(container, bg=Colors.PRIMARY_BG)
         fields_frame.pack(fill=tk.X, pady=10)
         
-        # Host
         self._create_field(fields_frame, "Host:", 0, AppConfig.DB_HOST, "host_entry")
         
-        # Port
         self._create_field(fields_frame, "Port:", 1, str(AppConfig.DB_PORT), "port_entry")
         
-        # Database
         self._create_field(fields_frame, "Database:", 2, AppConfig.DB_DATABASE, "database_entry")
         
-        # User
         self._create_field(fields_frame, "User:", 3, AppConfig.DB_USER, "user_entry")
         
-        # Password
         self._create_field(fields_frame, "Password:", 4, AppConfig.DB_PASSWORD, "password_entry", show="*")
         
-        # Buttons frame
         buttons_frame = tk.Frame(container, bg=Colors.PRIMARY_BG)
         buttons_frame.pack(pady=15)
         
-        # Test Connection button
         tk.Button(
             buttons_frame,
             text="🔍 Test Connection",
             font=Fonts.TEXT_BOLD,
-            bg="#17A2B8",  # Cyan
+            bg="#17A2B8",
             fg=Colors.WHITE,
             activebackground="#117a8b",
             activeforeground=Colors.WHITE,
@@ -123,12 +108,11 @@ class DatabaseConfig:
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=5)
         
-        # Update Configuration button
         tk.Button(
             buttons_frame,
             text="💾 Update Configuration",
             font=Fonts.TEXT_BOLD,
-            bg="#28A745",  # Green
+            bg="#28A745",
             fg=Colors.WHITE,
             activebackground="#218838",
             activeforeground=Colors.WHITE,
@@ -137,12 +121,11 @@ class DatabaseConfig:
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=5)
         
-        # Reset to Default button
         tk.Button(
             buttons_frame,
             text="🔄 Reset to Default",
             font=Fonts.TEXT_BOLD,
-            bg="#6C757D",  # Gray
+            bg="#6C757D",
             fg=Colors.WHITE,
             activebackground="#545b62",
             activeforeground=Colors.WHITE,
@@ -177,7 +160,6 @@ class DatabaseConfig:
         entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         entry.insert(0, default_value)
         
-        # Store reference to entry widget
         setattr(self, entry_attr, entry)
     
     def _update_config_display(self):
@@ -200,7 +182,6 @@ User: {AppConfig.DB_USER}"""
         user = self.user_entry.get().strip()
         password = self.password_entry.get()
         
-        # Validate inputs
         if not all([host, port, database, user]):
             messagebox.showerror("Error", "All fields except password are required!")
             return
@@ -211,7 +192,6 @@ User: {AppConfig.DB_USER}"""
             messagebox.showerror("Error", "Port must be a valid number!")
             return
         
-        # Test connection
         try:
             connection = mysql.connector.connect(
                 host=host,
@@ -223,7 +203,6 @@ User: {AppConfig.DB_USER}"""
             )
             
             if connection.is_connected():
-                # Get database info
                 cursor = connection.cursor()
                 cursor.execute("SELECT VERSION()")
                 version = cursor.fetchone()[0]
@@ -259,7 +238,6 @@ User: {AppConfig.DB_USER}"""
         user = self.user_entry.get().strip()
         password = self.password_entry.get()
         
-        # Validate inputs
         if not all([host, port, database, user]):
             messagebox.showerror("Error", "All fields except password are required!")
             return
@@ -270,7 +248,6 @@ User: {AppConfig.DB_USER}"""
             messagebox.showerror("Error", "Port must be a valid number!")
             return
         
-        # Test connection before saving
         try:
             connection = mysql.connector.connect(
                 host=host,
@@ -290,21 +267,18 @@ User: {AppConfig.DB_USER}"""
             if not response:
                 return
         
-        # Update AppConfig
         AppConfig.DB_HOST = host
         AppConfig.DB_PORT = port_int
         AppConfig.DB_DATABASE = database
         AppConfig.DB_USER = user
         AppConfig.DB_PASSWORD = password
         
-        # Update config.py file
         try:
             config_path = r"c:\Welvision Now Working\Welvision\frontend\utils\config.py"
             
             with open(config_path, 'r') as f:
                 content = f.read()
             
-            # Replace database settings
             import re
             
             content = re.sub(
@@ -336,7 +310,6 @@ User: {AppConfig.DB_USER}"""
             with open(config_path, 'w') as f:
                 f.write(content)
             
-            # Update display
             self._update_config_display()
             
             messagebox.showinfo(
@@ -365,14 +338,12 @@ User: {AppConfig.DB_USER}"""
         )
         
         if response:
-            # Default values
             default_host = "localhost"
             default_port = 3306
             default_database = "welvision_db"
             default_user = "root"
             default_password = "root"
             
-            # Update UI fields
             self.host_entry.delete(0, tk.END)
             self.host_entry.insert(0, default_host)
             
@@ -388,21 +359,18 @@ User: {AppConfig.DB_USER}"""
             self.password_entry.delete(0, tk.END)
             self.password_entry.insert(0, default_password)
             
-            # Update AppConfig
             AppConfig.DB_HOST = default_host
             AppConfig.DB_PORT = default_port
             AppConfig.DB_DATABASE = default_database
             AppConfig.DB_USER = default_user
             AppConfig.DB_PASSWORD = default_password
             
-            # Update config.py file
             try:
                 config_path = r"c:\Welvision Now Working\Welvision\frontend\utils\config.py"
                 
                 with open(config_path, 'r') as f:
                     content = f.read()
                 
-                # Replace database settings with default values
                 import re
                 
                 content = re.sub(
@@ -434,7 +402,6 @@ User: {AppConfig.DB_USER}"""
                 with open(config_path, 'w') as f:
                     f.write(content)
                 
-                # Update display
                 self._update_config_display()
                 
                 messagebox.showinfo(

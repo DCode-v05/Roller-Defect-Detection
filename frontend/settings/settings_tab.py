@@ -25,7 +25,6 @@ from .model_selector import ModelSelector
 from .threshold_manager import ThresholdManager
 from .threshold_database import ThresholdDatabase
 
-# Import camera capture functions from backend
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -46,7 +45,6 @@ class SettingsTab:
         self.parent = parent
         self.app = app_instance
         
-        # Preview components
         self.preview_camera_manager = None
         self.preview_control_panel = None
         self.model_selector = None
@@ -54,33 +52,26 @@ class SettingsTab:
         self.preview_active = False
         self.preview_od_thread = None
         self.preview_bf_thread = None
-        self.preview_stop_flag = None  # Thread stop flag
+        self.preview_stop_flag = None
         
-        # Preview models (loaded when preview starts)
         self.preview_bf_model = None
         self.preview_od_model = None
         
-        # Camera capture processes for preview
         self.preview_bf_camera_process = None
         self.preview_od_camera_process = None
         
-        # Threshold snapshot (taken when preview starts)
         self.threshold_snapshot = None
         
-        # Database handler
         self.threshold_db = ThresholdDatabase()
         
-        # Scrollable canvas and frame
         self.canvas = None
         self.scrollable_frame = None
         self._mousewheel_bound = False
         
     def setup(self):
         """Setup the settings tab UI with scrolling support."""
-        # Check if we're restoring with active preview
         restoring_active_preview = self.preview_active
         
-        # Unbind previous mousewheel if it was bound
         if self._mousewheel_bound:
             try:
                 if hasattr(self, 'canvas') and self.canvas:
@@ -89,31 +80,25 @@ class SettingsTab:
             except:
                 pass
         
-        # Create main container
         main_container = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
         main_container.pack(fill=tk.BOTH, expand=True)
         
-        # Create canvas for scrolling
         self.canvas = tk.Canvas(main_container, bg=Colors.PRIMARY_BG, highlightthickness=0)
         scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = tk.Frame(self.canvas, bg=Colors.PRIMARY_BG)
         
-        # Debounced scroll region update with longer delay for better performance
         self._scroll_update_id = None
         self._last_scroll_update = 0
         
         def _update_scroll_region(event=None):
-            # Cancel pending update
             if self._scroll_update_id:
                 self.canvas.after_cancel(self._scroll_update_id)
             
-            # Throttle updates to max once per 200ms
             import time
             current_time = time.time()
             if current_time - self._last_scroll_update < 0.2:
                 return
             
-            # Schedule new update after 200ms
             def _do_update():
                 try:
                     self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -128,37 +113,29 @@ class SettingsTab:
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw", width=self.canvas.winfo_reqwidth())
         self.canvas.configure(yscrollcommand=scrollbar.set)
         
-        # Pack canvas and scrollbar
         self.canvas.pack(side="left", fill="both", expand=True, padx=20, pady=20)
         scrollbar.pack(side="right", fill="y")
         
-        # Bind canvas resize to update window width
         def _on_canvas_configure(event):
             self.canvas.itemconfig(self.canvas.find_withtag("all")[0], width=event.width)
         
         self.canvas.bind("<Configure>", _on_canvas_configure)
         
-        # Enable mouse wheel scrolling - HEAVILY OPTIMIZED VERSION
         self._scroll_throttle_id = None
         
         def _on_mousewheel(event):
-            # Check if canvas still exists before scrolling
             if not self.canvas or not self.canvas.winfo_exists():
                 return
             
-            # Throttle scroll events to prevent lag
             if self._scroll_throttle_id:
-                return  # Ignore if already processing
+                return
             
             try:
-                # Scroll with acceleration based on delta
                 delta = -1 if event.delta > 0 else 1
-                self.canvas.yview_scroll(delta * 2, "units")  # 2x speed for smoother feel
+                self.canvas.yview_scroll(delta * 2, "units")
                 
-                # Reset throttle after 16ms (~60fps)
                 self._scroll_throttle_id = self.canvas.after(16, lambda: setattr(self, '_scroll_throttle_id', None))
             except tk.TclError:
-                # Canvas was destroyed, ignore
                 pass
         
         def _bind_mousewheel(event=None):
@@ -173,14 +150,11 @@ class SettingsTab:
                 except:
                     pass
         
-        # Bind only when mouse enters the canvas area
         self.canvas.bind("<Enter>", _bind_mousewheel)
         self.canvas.bind("<Leave>", _unbind_mousewheel)
         
-        # Initial bind
         _bind_mousewheel()
         
-        # Settings Title
         title_label = tk.Label(
             self.scrollable_frame, 
             text="Model Confidence Settings",
@@ -190,11 +164,9 @@ class SettingsTab:
         )
         title_label.pack(pady=(0, 20), fill=tk.X)
         
-        # ===== MODEL SELECTION SECTION =====
         self.model_selector = ModelSelector(self.scrollable_frame, self.app)
         self.model_selector.create()
         
-        # ===== CAMERA PREVIEW SECTION =====
         preview_frame = tk.LabelFrame(
             self.scrollable_frame,
             text="Live Camera Preview",
@@ -205,36 +177,27 @@ class SettingsTab:
         )
         preview_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Preview control panel
         self.preview_control_panel = PreviewControlPanel(preview_frame, self)
         self.preview_control_panel.setup()
         
-        # If restoring active preview, update button states
         if restoring_active_preview:
             self.preview_control_panel.enable_stop()
         
-        # Container for camera feeds
         self.preview_container = tk.Frame(preview_frame, bg=Colors.PRIMARY_BG)
         self.preview_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Create fresh camera feed manager
         self.preview_camera_manager = PreviewCameraManager(self.preview_container)
         self.preview_camera_manager.setup()
         
-        # If restoring with active preview, restart threads
         if restoring_active_preview:
             self._start_preview_threads()
         
-        # ===== THRESHOLD MANAGER SECTION =====
         self.threshold_manager = ThresholdManager(self.scrollable_frame, self.app)
         
-        # Create model confidence sliders
         self.threshold_manager.create_model_confidence_section(self.scrollable_frame)
         
-        # Load selected models and create defect thresholds immediately
         self._load_models_and_create_thresholds()
         
-        # Save button
         self.save_button = tk.Button(
             self.scrollable_frame, 
             text="Save Settings", 
@@ -248,27 +211,22 @@ class SettingsTab:
     def _load_models_and_create_thresholds(self):
         """Load selected models and create defect threshold sliders."""
         try:
-            # Get selected model paths from app (persistent selection)
             bf_model_path = self.app.selected_bf_model_path
             od_model_path = self.app.selected_od_model_path
             
             if bf_model_path and od_model_path:
-                # Load models temporarily to get classes
                 temp_bf_model = YOLO(bf_model_path)
                 temp_od_model = YOLO(od_model_path)
                 
-                # Create defect threshold sliders
                 self.threshold_manager.create_defect_thresholds_section(
                     self.scrollable_frame,
                     temp_bf_model,
                     temp_od_model
                 )
                 
-                # Clean up temporary models
                 del temp_bf_model
                 del temp_od_model
                 
-                # Update canvas scroll region - deferred to avoid blocking
                 def _update_scroll():
                     try:
                         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -276,16 +234,13 @@ class SettingsTab:
                         pass
                 self.canvas.after(100, _update_scroll)
                 
-                # Load latest thresholds from database for these models
                 bf_model_name = self.app.selected_bf_model_name
                 od_model_name = self.app.selected_od_model_name
                 
-                # Only load thresholds if models are actually selected (not "No Model Available")
                 if bf_model_name and bf_model_name != "No Model Available" and od_model_name and od_model_name != "No Model Available":
                     self._load_latest_thresholds_from_db(bf_model_name, od_model_name)
                 
             else:
-                # Show message when no models available
                 self._show_no_models_message()
                 
         except Exception as e:
@@ -307,7 +262,7 @@ class SettingsTab:
             no_model_frame,
             text="⚠️ No models available\n\nPlease upload BF and OD models in Model Management tab\nto configure defect thresholds.",
             font=Fonts.TEXT,
-            fg="#ffff00",  # Yellow
+            fg="#ffff00",
             bg=Colors.PRIMARY_BG,
             justify=tk.CENTER,
             pady=30
@@ -317,7 +272,6 @@ class SettingsTab:
     def reload_defect_thresholds_for_selected_models(self):
         """Reload defect threshold sliders when models are changed."""
         try:
-            # Clear existing slider references (the frames will be destroyed by threshold_manager)
             self.threshold_manager.bf_threshold_sliders = {}
             self.threshold_manager.od_threshold_sliders = {}
             self.threshold_manager.bf_size_threshold_sliders = {}
@@ -327,27 +281,22 @@ class SettingsTab:
             self.threshold_manager.bf_size_threshold_values = {}
             self.threshold_manager.od_size_threshold_values = {}
             
-            # Get selected model paths from app
             bf_model_path = self.app.selected_bf_model_path
             od_model_path = self.app.selected_od_model_path
             
             if bf_model_path and od_model_path:
-                # Load models temporarily to get classes
                 temp_bf_model = YOLO(bf_model_path)
                 temp_od_model = YOLO(od_model_path)
                 
-                # Create defect threshold sliders (this will destroy old container automatically)
                 self.threshold_manager.create_defect_thresholds_section(
                     self.scrollable_frame,
                     temp_bf_model,
                     temp_od_model
                 )
                 
-                # Clean up temporary models
                 del temp_bf_model
                 del temp_od_model
                 
-                # Update canvas scroll region
                 def _update_scroll():
                     try:
                         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -355,16 +304,13 @@ class SettingsTab:
                         pass
                 self.canvas.after(100, _update_scroll)
                 
-                # Load latest thresholds from database for these models
                 bf_model_name = self.app.selected_bf_model_name
                 od_model_name = self.app.selected_od_model_name
                 
-                # Only load thresholds if models are actually selected
                 if bf_model_name and bf_model_name != "No Model Available" and od_model_name and od_model_name != "No Model Available":
                     self._load_latest_thresholds_from_db(bf_model_name, od_model_name)
                 
             else:
-                # Show "no models" message
                 self._show_no_models_message()
                 
         except Exception as e:
@@ -387,7 +333,6 @@ class SettingsTab:
             
             cursor = connection.cursor()
             
-            # Load latest BF thresholds for this model
             cursor.execute("""
                 SELECT defect_threshold, size_threshold, model_threshold 
                 FROM bf_threshold_history 
@@ -399,11 +344,9 @@ class SettingsTab:
             
             if bf_result:
                 defect_str, size_str, model_conf = bf_result
-                # Parse defect thresholds: "rust:80%, dent:60%"
                 bf_defects = self._parse_defect_string(defect_str)
                 bf_sizes = self._parse_size_string(size_str) if size_str else {}
                 
-                # Apply BF thresholds
                 for defect_name, value in bf_defects.items():
                     if defect_name in self.threshold_manager.bf_threshold_sliders:
                         slider, entry, var = self.threshold_manager.bf_threshold_sliders[defect_name]
@@ -412,7 +355,6 @@ class SettingsTab:
                         entry.insert(0, str(int(value)))
                         self.threshold_manager.bf_threshold_values[defect_name] = value
                 
-                # Apply BF size thresholds
                 for defect_name, value in bf_sizes.items():
                     if defect_name in self.threshold_manager.bf_size_threshold_sliders:
                         slider, entry, var = self.threshold_manager.bf_size_threshold_sliders[defect_name]
@@ -421,12 +363,10 @@ class SettingsTab:
                         entry.insert(0, str(int(value)))
                         self.threshold_manager.bf_size_threshold_values[defect_name] = value
                 
-                # Apply BF model confidence
                 self.app.bf_conf_threshold = float(model_conf)
                 self.app.bf_conf_slider_value.set(float(model_conf) * 100)
                 self.threshold_manager.bf_conf_entry.delete(0, tk.END)
                 self.threshold_manager.bf_conf_entry.insert(0, str(int(float(model_conf) * 100)))
-            # Load latest OD thresholds for this model
             cursor.execute("""
                 SELECT defect_threshold, size_threshold, model_threshold 
                 FROM od_threshold_history 
@@ -438,11 +378,9 @@ class SettingsTab:
             
             if od_result:
                 defect_str, size_str, model_conf = od_result
-                # Parse defect thresholds
                 od_defects = self._parse_defect_string(defect_str)
                 od_sizes = self._parse_size_string(size_str) if size_str else {}
                 
-                # Apply OD thresholds
                 for defect_name, value in od_defects.items():
                     if defect_name in self.threshold_manager.od_threshold_sliders:
                         slider, entry, var = self.threshold_manager.od_threshold_sliders[defect_name]
@@ -451,7 +389,6 @@ class SettingsTab:
                         entry.insert(0, str(int(value)))
                         self.threshold_manager.od_threshold_values[defect_name] = value
                 
-                # Apply OD size thresholds
                 for defect_name, value in od_sizes.items():
                     if defect_name in self.threshold_manager.od_size_threshold_sliders:
                         slider, entry, var = self.threshold_manager.od_size_threshold_sliders[defect_name]
@@ -460,7 +397,6 @@ class SettingsTab:
                         entry.insert(0, str(int(value)))
                         self.threshold_manager.od_size_threshold_values[defect_name] = value
                 
-                # Apply OD model confidence
                 self.app.od_conf_threshold = float(model_conf)
                 self.app.od_conf_slider_value.set(float(model_conf) * 100)
                 self.threshold_manager.od_conf_entry.delete(0, tk.END)
@@ -480,7 +416,6 @@ class SettingsTab:
             for pair in pairs:
                 if ':' in pair:
                     name, value = pair.split(':')
-                    # Remove '%' and convert to int
                     value = int(value.replace('%', '').strip())
                     defects[name.strip()] = value
         except Exception as e:
@@ -495,7 +430,6 @@ class SettingsTab:
             for pair in pairs:
                 if ':' in pair:
                     name, value = pair.split(':')
-                    # Convert to int (no % sign for sizes)
                     value = int(value.strip())
                     sizes[name.strip()] = value
         except Exception as e:
@@ -504,7 +438,6 @@ class SettingsTab:
     
     def save_settings(self):
         """Save the current settings to database and apply to inference."""
-        # Show confirmation dialog
         confirm = messagebox.askyesno(
             "Confirm Save Settings",
             "Are you sure you want to save the current threshold settings?\n\n"
@@ -519,14 +452,11 @@ class SettingsTab:
         try:
             log_info("settings", "Saving threshold settings")
             
-            # Get current user
             employee_id = self.app.current_user if hasattr(self.app, 'current_user') else "unknown"
             
-            # Get selected models
             bf_model_name = self.app.selected_bf_model_name if hasattr(self.app, 'selected_bf_model_name') else "Unknown"
             od_model_name = self.app.selected_od_model_name if hasattr(self.app, 'selected_od_model_name') else "Unknown"
             
-            # Get threshold values
             bf_thresholds = self.threshold_manager.get_bf_thresholds()
             od_thresholds = self.threshold_manager.get_od_thresholds()
             bf_size_thresholds = self.threshold_manager.get_bf_size_thresholds()
@@ -534,11 +464,9 @@ class SettingsTab:
             bf_conf = self.threshold_manager.get_bf_model_confidence()
             od_conf = self.threshold_manager.get_od_model_confidence()
             
-            # Apply model confidence to app (this is the only place where it updates)
             self.app.bf_conf_threshold = bf_conf
             self.app.od_conf_threshold = od_conf
             
-            # Save to database
             bf_success = self.threshold_db.save_bf_thresholds(
                 employee_id, 
                 bf_thresholds,
@@ -555,12 +483,10 @@ class SettingsTab:
                 od_model_name
             )
             
-            # Update shared data if inspection is running
             if hasattr(self.app, 'shared_data'):
                 self.app.shared_data['od_conf_threshold'] = od_conf
                 self.app.shared_data['bf_conf_threshold'] = bf_conf
             
-            # Update model confidence in inference page if running
             if hasattr(self.app, 'inspection_running') and self.app.inspection_running:
                 self.app.update_model_confidence()
             
@@ -591,35 +517,28 @@ class SettingsTab:
         
         log_info("settings", "Starting camera preview")
         
-        # ===== VALIDATION CHECKS BEFORE PREVIEW =====
-        # 1. Check if models are available
         models_ok, models_error = self._check_models_available()
         if not models_ok:
             log_warning("settings", f"Models check failed: {models_error}")
             messagebox.showerror("Models Check Failed", models_error)
             return False
         
-        # 2. Check PLC connection
         plc_ok, plc_error = self._check_plc_connection()
         if not plc_ok:
             log_warning("settings", f"PLC check failed: {plc_error}")
             messagebox.showerror("PLC Check Failed", plc_error)
             return False
         
-        # 3. Check cameras
         cameras_ok, cameras_error = self._check_cameras_connected()
         if not cameras_ok:
             log_warning("settings", f"Camera check failed: {cameras_error}")
             messagebox.showerror("Camera Check Failed", cameras_error)
             return False
         
-        # All checks passed - proceed with preview
-        # Get selected models
         selected_models = self.model_selector.get_selected_models()
         bf_model_path = selected_models['bf_model_path']
         od_model_path = selected_models['od_model_path']
         
-        # Check if models are available
         if not bf_model_path or not od_model_path:
             log_warning("settings", "Models not available for preview")
             messagebox.showerror(
@@ -630,14 +549,11 @@ class SettingsTab:
             )
             return False
         
-        # Initialize stop flag
         self.preview_stop_flag = ThreadStopFlag()
         
-        # Start camera capture processes if not already running
         if not hasattr(self.app, 'inspection_running') or not self.app.inspection_running:
             self._start_camera_capture_processes()
         
-        # Load models
         try:
             log_info("settings", f"Loading models - BF: {bf_model_path}, OD: {od_model_path}")
             self.preview_bf_model = YOLO(bf_model_path)
@@ -659,10 +575,8 @@ class SettingsTab:
             print(f"❌ Error loading models: {e}")
             return False
         
-        # Take snapshot of current threshold values
         self._save_threshold_snapshot()
         
-        # Turn on PLC lights
         plc_client = snap7.client.Client()
         plc_client.connect("172.17.8.17", 0, 1)        
         data = plc_client.read_area(Areas.DB, 86, 0, 2)
@@ -673,27 +587,21 @@ class SettingsTab:
 
         self.preview_active = True
         
-        # Block navigation to Inference and System Check pages
         self._block_navigation_buttons()
         
-        # Block logout button
         self._block_logout_button()
         
-        # Block model dropdowns and save button
         self._block_model_dropdowns()
         self._block_save_button()
         
-        # Block app closing when preview is running
         if hasattr(self.app, 'protocol'):
             self.app.protocol("WM_DELETE_WINDOW", self._block_closing)
         
-        # Start camera update threads
         self._start_preview_threads()
         
-        # Start monitoring for system errors during preview
         self._monitor_preview_errors()
         
-        return True  # Preview started successfully    
+        return True
     
     def stop_preview(self):
         """Stop the camera preview with save/discard option and proper cleanup."""
@@ -705,10 +613,8 @@ class SettingsTab:
                 print("Preview is not running.")
                 return
             
-            # Check if thresholds were changed
             if self._thresholds_changed():
                 log_info("settings", "Thresholds were modified - prompting user to save changes")
-                # Ask user: Save or Don't Save
                 response = messagebox.askyesnocancel(
                     "Save Threshold Changes?",
                     "Threshold values have been modified.\n\n"
@@ -718,17 +624,16 @@ class SettingsTab:
                     "Cancel: Continue preview"
                 )
                 
-                if response is None:  # Cancel - continue preview
+                if response is None:
                     log_info("settings", "User cancelled stop preview - continuing preview")
                     return
-                elif response:  # Yes - save changes
+                elif response:
                     log_info("settings", "User chose to save threshold changes")
                     self.save_settings()
-                else:  # No - restore previous values
+                else:
                     log_info("settings", "User chose to discard threshold changes")
                     self._restore_threshold_snapshot()
             
-            # Turn off PLC lights
             log_info("settings", "Turning off PLC lights")
             plc_client = snap7.client.Client()
             plc_client.connect("172.17.8.17", 0, 1)        
@@ -740,35 +645,27 @@ class SettingsTab:
             
             self.preview_active = False
             
-            # Signal threads to stop
             if self.preview_stop_flag:
                 self.preview_stop_flag.set()
             
-            # Unblock navigation buttons
             self._unblock_navigation_buttons()
             
-            # Unblock logout button
             self._unblock_logout_button()
             
-            # Unblock model dropdowns and Save Settings button
             self._unblock_model_dropdowns()
             self._unblock_save_button()
             
-            # Restore app closing
             if hasattr(self.app, 'on_closing'):
                 self.app.protocol("WM_DELETE_WINDOW", self.app.on_closing)
             
-            # Display black screens on both feeds
             self._display_black_screens()
 
-            # Wait for threads to finish properly
             if hasattr(self, 'preview_od_thread') and self.preview_od_thread and self.preview_od_thread.is_alive():
                 self.preview_od_thread.join(timeout=2.0)
             
             if hasattr(self, 'preview_bf_thread') and self.preview_bf_thread and self.preview_bf_thread.is_alive():
                 self.preview_bf_thread.join(timeout=2.0)
             
-            # Unload models to free memory
             if self.preview_bf_model is not None:
                 del self.preview_bf_model
                 self.preview_bf_model = None
@@ -777,7 +674,6 @@ class SettingsTab:
                 del self.preview_od_model
                 self.preview_od_model = None
             
-            # Stop camera capture processes using process manager
             if self.preview_bf_camera_process is not None:
                 self.app.process_manager.register_preview_process(self.preview_bf_camera_process)
             
@@ -792,32 +688,26 @@ class SettingsTab:
             log_error("settings", "Error stopping camera preview", e)
             messagebox.showerror("Error", f"Failed to stop preview:\n{str(e)}")
         
-        # Clear process references
         self.preview_bf_camera_process = None
         self.preview_od_camera_process = None
         
-        # Clean up camera feeds to release image memory
         if self.preview_camera_manager:
             for feed_id in ['bf', 'od']:
                 feed = self.preview_camera_manager.get_feed(feed_id)
                 if feed and hasattr(feed, 'cleanup'):
                     feed.cleanup()
         
-        # Clean up GPU memory
         self.app.process_manager.cleanup_gpu_memory()
         
-        # Force garbage collection to free memory
         import gc
         gc.collect()
         
-        # Small delay to ensure cleanup is complete
         time.sleep(0.3)
         
     
     def _start_camera_capture_processes(self):
         """Start camera capture processes for preview mode."""
         try:
-            # Start BF camera capture
             self.preview_bf_camera_process = Process(
                 target=capture_frames_bigface,
                 args=(self.app.shared_frame_bigface, self.app.frame_lock_bigface, self.app.frame_shape, self.app.shared_data),
@@ -825,10 +715,8 @@ class SettingsTab:
             )
             self.preview_bf_camera_process.start()
             
-            # Register with process manager
             self.app.process_manager.register_preview_process(self.preview_bf_camera_process)
             
-            # Start OD camera capture
             self.preview_od_camera_process = Process(
                 target=capture_frames_od,
                 args=(self.app.shared_frame_od, self.app.frame_lock_od, self.app.frame_shape, self.app.shared_data),
@@ -836,10 +724,8 @@ class SettingsTab:
             )
             self.preview_od_camera_process.start()
             
-            # Register with process manager
             self.app.process_manager.register_preview_process(self.preview_od_camera_process)
             
-            # Give cameras time to start capturing
             time.sleep(0.5)
             
         except Exception as e:
@@ -848,23 +734,18 @@ class SettingsTab:
     
     def _start_preview_threads(self):
         """Start camera feed update threads for preview."""
-        # Clear stop flag
         self.preview_stop_flag.clear()
         
-        # Start OD camera thread
         self.preview_od_thread = threading.Thread(target=self._update_od_preview, name="Preview_OD_Thread")
         self.preview_od_thread.daemon = True
         self.preview_od_thread.start()
         
-        # Register with process manager
         self.app.process_manager.register_preview_thread(self.preview_od_thread)
         
-        # Start BF camera thread
         self.preview_bf_thread = threading.Thread(target=self._update_bf_preview, name="Preview_BF_Thread")
         self.preview_bf_thread.daemon = True
         self.preview_bf_thread.start()
         
-        # Register with process manager
         self.app.process_manager.register_preview_thread(self.preview_bf_thread)
     
     def _filter_and_draw_detections(self, frame, results, model_conf_threshold, defect_thresholds, size_thresholds, model_type='od'):
@@ -883,77 +764,60 @@ class SettingsTab:
         Returns:
             Annotated frame with filtered detections
         """
-        # Define a color palette for different classes (BGR format for OpenCV)
         color_palette = [
-            (0, 255, 0),      # Green
-            (255, 0, 0),      # Blue
-            (0, 0, 255),      # Red
-            (255, 255, 0),    # Cyan
-            (255, 0, 255),    # Magenta
-            (0, 255, 255),    # Yellow
-            (128, 0, 128),    # Purple
-            (0, 128, 255),    # Orange
-            (128, 128, 0),    # Teal
-            (255, 128, 0),    # Light Blue
-            (0, 128, 128),    # Olive
-            (128, 0, 255),    # Pink
+            (0, 255, 0),
+            (255, 0, 0),
+            (0, 0, 255),
+            (255, 255, 0),
+            (255, 0, 255),
+            (0, 255, 255),
+            (128, 0, 128),
+            (0, 128, 255),
+            (128, 128, 0),
+            (255, 128, 0),
+            (0, 128, 128),
+            (128, 0, 255),
         ]
         
-        # Create a copy of the frame for drawing
         annotated_frame = frame.copy()
         
-        # Get detection results
         boxes = results[0].boxes
         
         if boxes is None or len(boxes) == 0:
             return annotated_frame
         
-        # Get class names from the model
         class_names = results[0].names
         
-        # Process each detection
         for box in boxes:
-            # Get detection info
             conf = float(box.conf[0])
             cls_id = int(box.cls[0])
             class_name = class_names[cls_id]
             
-            # Get bounding box coordinates
             x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             
-            # Calculate bounding box area (width * height)
             width = x2 - x1
             height = y2 - y1
             bbox_area = width * height
             
-            # Get defect-specific confidence threshold (default to 0 if not found)
             defect_threshold = defect_thresholds.get(class_name, 0) / 100.0
             
-            # Get defect-specific size threshold (default to 0 if not found)
             size_threshold = size_thresholds.get(class_name, 0)
             
-            # Apply filters: Model Confidence + Defect Confidence + Size Threshold
             if conf >= model_conf_threshold and conf >= defect_threshold and bbox_area >= size_threshold:
-                # Select color based on class ID
                 color = color_palette[cls_id % len(color_palette)]
                 
-                # Draw bounding box with thicker line
                 cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, 3)
                 
-                # Prepare label with class name and confidence
                 label = f"{class_name} {conf:.2f}"
                 
-                # Get label size for background rectangle (using bold font thickness)
                 (label_width, label_height), baseline = cv2.getTextSize(
                     label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
                 )
                 
-                # Ensure label stays within frame bounds
                 label_y1 = max(y1 - label_height - baseline - 10, 0)
                 label_y2 = max(y1, label_height + baseline + 10)
                 
-                # Draw label background with same color as box
                 cv2.rectangle(
                     annotated_frame,
                     (x1, label_y1),
@@ -962,16 +826,15 @@ class SettingsTab:
                     -1
                 )
                 
-                # Draw label text in bold (thickness=2)
                 cv2.putText(
                     annotated_frame,
                     label,
                     (x1 + 5, label_y2 - baseline - 5),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.6,
-                    (255, 255, 255),  # White text
-                    2,  # Bold thickness
-                    cv2.LINE_AA  # Anti-aliased for smoother text
+                    (255, 255, 255),
+                    2,
+                    cv2.LINE_AA
                 )
         
         return annotated_frame
@@ -980,12 +843,9 @@ class SettingsTab:
         """Update OD camera preview feed with model inference."""
         od_feed = self.preview_camera_manager.get_feed('od') if self.preview_camera_manager else None
         
-        # Keep thread running until stop flag is set or canvas is destroyed
         while od_feed and od_feed.canvas and od_feed.canvas.winfo_exists() and not self.preview_stop_flag.is_set():
             try:
-                # Check if preview is active
                 if self.preview_active:
-                    # Preview is running - get frame and run inference
                     with self.app.frame_lock_od:
                         np_frame = np.frombuffer(
                             self.app.shared_frame_od.get_obj(), 
@@ -993,30 +853,24 @@ class SettingsTab:
                         ).reshape(self.app.frame_shape)
                         frame = np_frame.copy()
         
-                    # Get real-time threshold values from sliders
                     current_od_conf = self.app.od_conf_slider_value.get() / 100.0
                     current_od_defect_thresholds = self.threshold_manager.get_od_thresholds()
                     current_od_size_thresholds = self.threshold_manager.get_od_size_thresholds()
                     
-                    # Double-check model is still loaded before prediction
                     if self.preview_od_model is None:
-                        # Model unloaded - show black screen
                         black_frame = np.zeros(self.app.frame_shape, dtype=np.uint8)
                         od_feed.update_frame(black_frame)
                         time.sleep(0.03)
                         continue
                     
-                    # Run inference with a low confidence to get all detections
                     results = self.preview_od_model.predict(
                         frame, 
                         device=0 if torch.cuda.is_available() else 'cpu',
-                        conf=0.01,  # Low threshold to get all detections
+                        conf=0.01,
                         verbose=False,
                         half=True if torch.cuda.is_available() else False
                     )
                     
-                    # Filter and draw detections based on current slider values
-                    # Applies: Model Confidence Filter + Defect Confidence Filter + Size Threshold Filter
                     annotated_frame = self._filter_and_draw_detections(
                         frame, 
                         results, 
@@ -1027,17 +881,15 @@ class SettingsTab:
                     )
                     od_feed.update_frame(annotated_frame)
                 else:
-                    # Preview is stopped - show black screen
                     black_frame = np.zeros(self.app.frame_shape, dtype=np.uint8)
                     od_feed.update_frame(black_frame)
                 
-                    time.sleep(0.03)  # ~30 FPS
+                    time.sleep(0.03)
                 
             except Exception as e:
                 print(f"❌ OD preview thread error: {e}")
                 import traceback
                 traceback.print_exc()
-                # Set system error flag
                 if hasattr(self.app, 'shared_data') and self.app.shared_data:
                     self.app.shared_data['system_error'] = True
                 break
@@ -1046,12 +898,9 @@ class SettingsTab:
         """Update Bigface camera preview feed with model inference."""
         bf_feed = self.preview_camera_manager.get_feed('bf') if self.preview_camera_manager else None
         
-        # Keep thread running until stop flag is set or canvas is destroyed
         while bf_feed and bf_feed.canvas and bf_feed.canvas.winfo_exists() and not self.preview_stop_flag.is_set():
             try:
-                # Check if preview is active
                 if self.preview_active:
-                    # Preview is running - get frame and run inference
                     with self.app.frame_lock_bigface:
                         np_frame = np.frombuffer(
                             self.app.shared_frame_bigface.get_obj(), 
@@ -1059,30 +908,24 @@ class SettingsTab:
                         ).reshape(self.app.frame_shape)
                         frame = np_frame.copy()
                     
-                    # Get real-time threshold values from sliders
                     current_bf_conf = self.app.bf_conf_slider_value.get() / 100.0
                     current_bf_defect_thresholds = self.threshold_manager.get_bf_thresholds()
                     current_bf_size_thresholds = self.threshold_manager.get_bf_size_thresholds()
                     
-                    # Double-check model is still loaded before prediction
                     if self.preview_bf_model is None:
-                        # Model unloaded - show black screen
                         black_frame = np.zeros(self.app.frame_shape, dtype=np.uint8)
                         bf_feed.update_frame(black_frame)
                         time.sleep(0.03)
                         continue
                     
-                    # Run inference with a low confidence to get all detections
                     results = self.preview_bf_model.predict(
                         frame, 
                         device=0 if torch.cuda.is_available() else 'cpu',
-                        conf=0.01,  # Low threshold to get all detections
+                        conf=0.01,
                         verbose=False,
                         half=True if torch.cuda.is_available() else False
                     )
                     
-                    # Filter and draw detections based on current slider values
-                    # Applies: Model Confidence Filter + Defect Confidence Filter + Size Threshold Filter
                     annotated_frame = self._filter_and_draw_detections(
                         frame, 
                         results, 
@@ -1092,30 +935,25 @@ class SettingsTab:
                         model_type='bf'
                     )
                     
-                    # Update the camera feed with annotated frame
                     bf_feed.update_frame(annotated_frame)
                 else:
-                    # Preview is stopped - show black screen
                     black_frame = np.zeros(self.app.frame_shape, dtype=np.uint8)
                     bf_feed.update_frame(black_frame)
                 
-                    time.sleep(0.03)  # ~30 FPS
+                    time.sleep(0.03)
                 
             except Exception as e:
                 print(f"❌ BF preview thread error: {e}")
                 import traceback
                 traceback.print_exc()
-                # Set system error flag
                 if hasattr(self.app, 'shared_data') and self.app.shared_data:
                     self.app.shared_data['system_error'] = True
                 break
 
     def _display_black_screens(self):
         """Display black screens on both camera feeds when preview is stopped."""
-        # Create a black frame
         black_frame = np.zeros(self.app.frame_shape, dtype=np.uint8)
         
-        # Update both feeds with black screen
         od_feed = self.preview_camera_manager.get_feed('od')
         od_feed.update_frame(black_frame)
         
@@ -1127,19 +965,17 @@ class SettingsTab:
         if hasattr(self.app, 'navbar_manager') and self.app.navbar_manager:
             navbar = self.app.navbar_manager
             
-            # Block Inference button
             if 'inference' in navbar.buttons:
                 navbar.buttons['inference'].button.config(
                     state=tk.DISABLED,
-                    bg=Colors.DANGER,  # Red color
+                    bg=Colors.DANGER,
                     disabledforeground=Colors.WHITE
                 )
             
-            # Block System Check button
             if 'system_check' in navbar.buttons:
                 navbar.buttons['system_check'].button.config(
                     state=tk.DISABLED,
-                    bg=Colors.DANGER,  # Red color
+                    bg=Colors.DANGER,
                     disabledforeground=Colors.WHITE
                 )
             
@@ -1149,7 +985,6 @@ class SettingsTab:
         if hasattr(self.app, 'navbar_manager') and self.app.navbar_manager:
             navbar = self.app.navbar_manager
             
-            # Unblock Inference button
             if 'inference' in navbar.buttons:
                 nav_button = navbar.buttons['inference']
                 nav_button.button.config(
@@ -1157,7 +992,6 @@ class SettingsTab:
                     bg=nav_button.inactive_bg
                 )
             
-            # Unblock System Check button
             if 'system_check' in navbar.buttons:
                 nav_button = navbar.buttons['system_check']
                 nav_button.button.config(
@@ -1170,8 +1004,8 @@ class SettingsTab:
         if hasattr(self.app, 'logout_button') and self.app.logout_button:
             self.app.logout_button.config(
                 state=tk.DISABLED,
-                bg="#6c757d",  # Grey
-                fg=Colors.WHITE  # White text
+                bg="#6c757d",
+                fg=Colors.WHITE
             )
     
     def _unblock_logout_button(self):
@@ -1179,8 +1013,8 @@ class SettingsTab:
         if hasattr(self.app, 'logout_button') and self.app.logout_button:
             self.app.logout_button.config(
                 state=tk.NORMAL,
-                bg=Colors.DANGER,  # Red
-                fg=Colors.WHITE  # White text
+                bg=Colors.DANGER,
+                fg=Colors.WHITE
             )
     
     def _block_save_button(self):
@@ -1188,7 +1022,7 @@ class SettingsTab:
         if hasattr(self, 'save_button') and self.save_button:
             self.save_button.config(
                 state=tk.DISABLED,
-                bg=Colors.DANGER,  # Red color when disabled during preview
+                bg=Colors.DANGER,
                 disabledforeground=Colors.WHITE
             )
     
@@ -1197,7 +1031,7 @@ class SettingsTab:
         if hasattr(self, 'save_button') and self.save_button:
             self.save_button.config(
                 state=tk.NORMAL,
-                bg=Colors.SUCCESS  # Green color when enabled
+                bg=Colors.SUCCESS
             )
     
     def _block_model_dropdowns(self):
@@ -1251,7 +1085,6 @@ class SettingsTab:
         current_bf_conf = self.threshold_manager.get_bf_model_confidence()
         current_od_conf = self.threshold_manager.get_od_model_confidence()
         
-        # Check if any values changed
         bf_changed = current_bf != self.threshold_snapshot['bf_thresholds']
         od_changed = current_od != self.threshold_snapshot['od_thresholds']
         bf_size_changed = current_bf_size != self.threshold_snapshot.get('bf_size_thresholds', {})
@@ -1275,29 +1108,23 @@ class SettingsTab:
             return
         
         if hasattr(self.app, 'shared_data') and self.app.shared_data:
-            # Check if system error occurred
             if self.app.shared_data.get('system_error', False):
-                # Reset the flag
                 self.app.shared_data['system_error'] = False
                 
-                # Show error popup and force stop preview
                 self._show_preview_error_popup()
-                return  # Don't continue monitoring
+                return
         
-        # Continue monitoring every 500ms if preview is still active
         if self.preview_active:
             try:
                 self.parent.after(500, self._monitor_preview_errors)
             except:
-                pass  # Tab might be destroyed
+                pass
     
     def _show_preview_error_popup(self):
         """Show error popup and force stop preview."""
         from tkinter import messagebox
         
-        # Force stop preview without save/discard dialog
         try:
-            # Turn off PLC lights
             try:
                 plc_client = snap7.client.Client()
                 plc_client.connect("172.17.8.17", 0, 1)
@@ -1311,11 +1138,9 @@ class SettingsTab:
             
             self.preview_active = False
             
-            # Signal threads to stop
             if self.preview_stop_flag:
                 self.preview_stop_flag.set()
             
-            # Unload models
             if self.preview_bf_model is not None:
                 del self.preview_bf_model
                 self.preview_bf_model = None
@@ -1324,7 +1149,6 @@ class SettingsTab:
                 del self.preview_od_model
                 self.preview_od_model = None
             
-            # Stop camera processes
             if self.preview_bf_camera_process is not None:
                 self.app.process_manager.register_preview_process(self.preview_bf_camera_process)
             
@@ -1333,34 +1157,27 @@ class SettingsTab:
             
             self.app.process_manager.stop_all_preview()
             
-            # Clear references
             self.preview_bf_camera_process = None
             self.preview_od_camera_process = None
             
-            # Unblock navigation and controls
             self._unblock_navigation_buttons()
             self._unblock_logout_button()
             self._unblock_model_dropdowns()
             self._unblock_save_button()
             
-            # Update preview control panel
             if self.preview_control_panel:
                 self.preview_control_panel.enable_start()
             
-            # Restore normal app closing
             if hasattr(self.app, 'on_closing'):
                 self.app.protocol("WM_DELETE_WINDOW", self.app.on_closing)
             
-            # Display black screens
             self._display_black_screens()
             
-            # Clean up GPU memory
             self.app.process_manager.cleanup_gpu_memory()
             
         except Exception as e:
             print(f"❌ Error during preview emergency stop: {e}")
         
-        # Show error message
         messagebox.showerror(
             "Preview Error Detected",
             "⚠️ A critical error occurred during preview!\n\n"
@@ -1389,7 +1206,6 @@ class SettingsTab:
         if not bf_model_path or not od_model_path:
             return False, "⚠️ Models Not Available\n\nBoth BF and OD models are required.\n\nPlease upload models in Model Management tab first."
         
-        # Check if model files actually exist
         import os
         if not os.path.exists(bf_model_path):
             return False, f"⚠️ BF Model File Not Found\n\nPath: {bf_model_path}\n\nPlease upload the model again."
@@ -1432,7 +1248,6 @@ class SettingsTab:
         import cv2
         cameras_connected = []
         
-        # Check camera indices 0 and 1
         for idx in [0, 1]:
             cap = cv2.VideoCapture(idx)
             if cap.isOpened():
@@ -1454,7 +1269,6 @@ class SettingsTab:
             from datetime import datetime
             import os
             
-            # Get current frame from shared memory
             with self.app.frame_lock_bigface:
                 np_frame = np.frombuffer(
                     self.app.shared_frame_bigface.get_obj(), 
@@ -1462,20 +1276,16 @@ class SettingsTab:
                 ).reshape(self.app.frame_shape)
                 frame = np_frame.copy()
             
-            # Create directory path
             username = os.getlogin()
             save_path = f"C:\\Users\\{username}\\Desktop\\Settings Frame\\BF"
             os.makedirs(save_path, exist_ok=True)
             
-            # Create filename with current timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # Remove last 3 digits of microseconds
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
             filename = f"{timestamp}.jpg"
             filepath = os.path.join(save_path, filename)
             
-            # Save the frame
             cv2.imwrite(filepath, frame)
             
-            # Show success message
             messagebox.showinfo(
                 "Frame Captured",
                 f"✅ BF frame captured successfully!\n\n"
@@ -1498,7 +1308,6 @@ class SettingsTab:
             from datetime import datetime
             import os
             
-            # Get current frame from shared memory
             with self.app.frame_lock_od:
                 np_frame = np.frombuffer(
                     self.app.shared_frame_od.get_obj(), 
@@ -1506,20 +1315,16 @@ class SettingsTab:
                 ).reshape(self.app.frame_shape)
                 frame = np_frame.copy()
             
-            # Create directory path
             username = os.getlogin()
             save_path = f"C:\\Users\\{username}\\Desktop\\Settings Frame\\OD"
             os.makedirs(save_path, exist_ok=True)
             
-            # Create filename with current timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # Remove last 3 digits of microseconds
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
             filename = f"{timestamp}.jpg"
             filepath = os.path.join(save_path, filename)
             
-            # Save the frame
             cv2.imwrite(filepath, frame)
             
-            # Show success message
             messagebox.showinfo(
                 "Frame Captured",
                 f"✅ OD frame captured successfully!\n\n"
@@ -1534,7 +1339,6 @@ class SettingsTab:
     
     def cleanup(self):
         """Cleanup method called when settings tab is destroyed."""
-        # Unbind mousewheel event immediately
         if self._mousewheel_bound:
             try:
                 self.canvas.unbind_all("<MouseWheel>")
@@ -1542,17 +1346,13 @@ class SettingsTab:
             except:
                 pass
         
-        # Stop preview if active
         if self.preview_active:
             try:
-                # Set stop flag
                 if self.preview_stop_flag:
                     self.preview_stop_flag.set()
                 
-                # Turn off preview flag
                 self.preview_active = False
                 
-                # Turn off PLC lights
                 try:
                     plc_client = snap7.client.Client()
                     plc_client.connect("172.17.8.17", 0, 1)        
@@ -1564,7 +1364,6 @@ class SettingsTab:
                 except:
                     pass
                 
-                # Unload models
                 if self.preview_bf_model is not None:
                     del self.preview_bf_model
                     self.preview_bf_model = None
@@ -1573,7 +1372,6 @@ class SettingsTab:
                     del self.preview_od_model
                     self.preview_od_model = None
                 
-                # Use process manager for cleanup
                 if self.preview_bf_camera_process is not None:
                     self.app.process_manager.register_preview_process(self.preview_bf_camera_process)
                 
@@ -1582,11 +1380,9 @@ class SettingsTab:
                 
                 self.app.process_manager.stop_all_preview()
                 
-                # Clear references
                 self.preview_bf_camera_process = None
                 self.preview_od_camera_process = None
                 
-                # Clean GPU memory
                 self.app.process_manager.cleanup_gpu_memory()
                 
             except Exception as e:

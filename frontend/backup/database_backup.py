@@ -29,7 +29,6 @@ class DatabaseBackupManager:
         self.parent = parent
         self.db_ops = DatabaseOperations()
         
-        # UI components
         self.backup_button = None
         self.restore_button = None
         self.status_label = None
@@ -41,7 +40,6 @@ class DatabaseBackupManager:
         Args:
             container_frame: Container frame to hold the UI elements
         """
-        # Description
         desc_label = tk.Label(
             container_frame,
             text="Backup entire MySQL database to SQL file or restore from backup",
@@ -53,11 +51,9 @@ class DatabaseBackupManager:
         )
         desc_label.pack(anchor=tk.W, pady=(2, 8))
         
-        # Buttons frame
         buttons_frame = tk.Frame(container_frame, bg=Colors.PRIMARY_BG)
         buttons_frame.pack(pady=5)
         
-        # Backup button
         self.backup_button = tk.Button(
             buttons_frame,
             text="💾 Backup Database",
@@ -75,7 +71,6 @@ class DatabaseBackupManager:
         )
         self.backup_button.pack(side=tk.LEFT, padx=8)
         
-        # Restore button
         self.restore_button = tk.Button(
             buttons_frame,
             text="📂 Restore Database",
@@ -93,7 +88,6 @@ class DatabaseBackupManager:
         )
         self.restore_button.pack(side=tk.LEFT, padx=8)
         
-        # Status label
         self.status_label = tk.Label(
             container_frame,
             text="Ready to backup or restore database",
@@ -108,7 +102,6 @@ class DatabaseBackupManager:
         try:
             log_info("backup", "Database backup initiated")
             
-            # Confirm backup
             response = messagebox.askyesno(
                 "Confirm Database Backup",
                 f"This will create a complete backup of the '{AppConfig.DB_DATABASE}' database.\n\n"
@@ -119,17 +112,14 @@ class DatabaseBackupManager:
                 log_info("backup", "Database backup cancelled by user")
                 return
             
-            # Update status
             self.status_label.config(text="Creating database backup...", fg="#FFA500")
             self.backup_button.config(state=tk.DISABLED)
             self.restore_button.config(state=tk.DISABLED)
             self.parent.update_idletasks()
             
-            # Create backup directory if not exists
             backup_dir = Path(f"C:\\Users\\{os.getlogin()}\\Desktop\\Backup")
             backup_dir.mkdir(parents=True, exist_ok=True)
             
-            # Check available storage
             if not StorageChecker.check_storage(str(backup_dir), required_mb=100):
                 messagebox.showerror(
                     "Insufficient Storage",
@@ -139,15 +129,12 @@ class DatabaseBackupManager:
                 self._reset_ui()
                 return
             
-            # Generate backup filename with timestamp
             timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
             backup_file = backup_dir / f"backup_{timestamp}.sql"
             
-            # Perform backup
             success, message = self.db_ops.backup_database(str(backup_file))
             
             if success:
-                # Get file size
                 file_size_mb = os.path.getsize(backup_file) / (1024 * 1024)
                 
                 log_info("backup", f"Database backup successful: {backup_file}")
@@ -156,7 +143,6 @@ class DatabaseBackupManager:
                     fg="#28a745"
                 )
                 
-                # Ask if user wants to open the backup folder
                 response = messagebox.askyesno(
                     "Backup Successful",
                     f"✅ Database backup created successfully!\n\n"
@@ -168,7 +154,6 @@ class DatabaseBackupManager:
                 )
                 
                 if response:
-                    # Open the backup folder in Windows Explorer
                     import subprocess
                     subprocess.run(['explorer', str(backup_dir)])
             else:
@@ -197,16 +182,12 @@ class DatabaseBackupManager:
         try:
             log_info("backup", "Database restore initiated")
             
-            # Import file dialog
             from tkinter import filedialog
             
-            # Set default directory to backup folder
             backup_dir = Path(f"C:\\Users\\{os.getlogin()}\\Desktop\\Backup")
             
-            # Create backup directory if not exists
             backup_dir.mkdir(parents=True, exist_ok=True)
             
-            # Open file dialog
             backup_file = filedialog.askopenfilename(
                 title="Select Database Backup File",
                 initialdir=str(backup_dir),
@@ -217,7 +198,6 @@ class DatabaseBackupManager:
                 log_info("backup", "Database restore cancelled - no file selected")
                 return
             
-            # Confirm restore
             response = messagebox.askyesno(
                 "Confirm Database Restore",
                 f"⚠️ WARNING ⚠️\n\n"
@@ -233,7 +213,6 @@ class DatabaseBackupManager:
                 log_info("backup", "Database restore cancelled by user")
                 return
             
-            # Double confirmation
             response2 = messagebox.askyesno(
                 "Final Confirmation",
                 "This is your last chance to cancel.\n\n"
@@ -245,13 +224,11 @@ class DatabaseBackupManager:
                 log_info("backup", "Database restore cancelled by user (2nd confirmation)")
                 return
             
-            # Update status
             self.status_label.config(text="Restoring database from backup...", fg="#FFA500")
             self.backup_button.config(state=tk.DISABLED)
             self.restore_button.config(state=tk.DISABLED)
             self.parent.update_idletasks()
             
-            # Perform restore
             success, message = self.db_ops.restore_database(backup_file)
             
             if success:

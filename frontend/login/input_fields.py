@@ -28,10 +28,8 @@ class InputFields:
         Returns:
             tuple: (email_entry, password_entry) Entry widgets
         """
-        # Email section
         self._create_email_field()
         
-        # Password section
         self._create_password_field()
         
         return self.email_entry, self.password_entry
@@ -87,13 +85,11 @@ class InputFields:
             tuple: (email, password) as strings
         """
         try:
-            # Check if email entry exists and is valid
             if self.email_entry and self.email_entry.winfo_exists():
                 email = self.email_entry.get().strip()
             else:
                 email = ""
             
-            # Check if password entry exists and is valid
             if self.password_entry and self.password_entry.winfo_exists():
                 password = self.password_entry.get().strip()
             else:
@@ -101,5 +97,4 @@ class InputFields:
             
             return email, password
         except tk.TclError:
-            # Widgets destroyed, return empty credentials
             return "", ""

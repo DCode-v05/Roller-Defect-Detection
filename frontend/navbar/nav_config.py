@@ -7,8 +7,6 @@ Defines the navigation structure and button configurations
 class NavConfig:
     """Navigation bar configuration constants."""
     
-    # Navigation button definitions
-    # Format: (button_id, display_text, tab_name)
     NAV_BUTTONS = [
         ("inference", "INFERENCE", "Inference"),
         ("data", "DATA", "Data"),
@@ -21,9 +19,8 @@ class NavConfig:
         ("info", "INFO", "Info"),
     ]
     
-    # Navbar styling
     NAVBAR_HEIGHT = 50
-    BUTTON_GAP = 3  # Gap between buttons in pixels
+    BUTTON_GAP = 3
     NAVBAR_PADDING_X = 5
     NAVBAR_PADDING_Y = 3
     

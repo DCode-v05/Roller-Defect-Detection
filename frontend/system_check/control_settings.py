@@ -21,24 +21,19 @@ class ControlSettings:
         self.parent = parent
         self.app = app_instance
         
-        # Current patterns
         self.bf_pattern = "ACCEPT ALL"
         self.od_pattern = "ACCEPT ALL"
         
-        # Store radio button references
         self.bf_radio_buttons = []
         self.od_radio_buttons = []
         
-        # Track whether controls are disabled
         self.controls_disabled = False
         
     def create(self):
         """Create the control settings UI."""
-        # Clear old radio button references
         self.bf_radio_buttons = []
         self.od_radio_buttons = []
         
-        # Main frame
         settings_frame = tk.LabelFrame(
             self.parent,
             text="Control Settings",
@@ -50,43 +45,35 @@ class ControlSettings:
         )
         settings_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        # Inner container
         inner_frame = tk.Frame(settings_frame, bg=Colors.PRIMARY_BG)
         inner_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
         
-        # Create two columns
         inner_frame.grid_columnconfigure(0, weight=1)
         inner_frame.grid_columnconfigure(1, weight=1)
         
-        # BigFace Control
         self._create_bf_control(inner_frame)
         
-        # OD Control
         self._create_od_control(inner_frame)
         
-        # Restore disabled state if needed
         if self.controls_disabled:
             self._apply_disabled_state()
     
     def _create_bf_control(self, parent):
         """Create BigFace control section."""
-        # BigFace frame
         bf_frame = tk.LabelFrame(
             parent,
             text="BigFace Control",
             font=("Arial", 10, "bold"),
-            fg="#00FFFF",  # Cyan
+            fg="#00FFFF",
             bg=Colors.PRIMARY_BG,
             bd=2,
             relief=tk.RIDGE
         )
         bf_frame.grid(row=0, column=0, padx=5, pady=2, sticky="nsew")
         
-        # Inner frame
         bf_inner = tk.Frame(bf_frame, bg=Colors.PRIMARY_BG)
         bf_inner.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
         
-        # Label
         label = tk.Label(
             bf_inner,
             text="Select Pattern:",
@@ -96,7 +83,6 @@ class ControlSettings:
         )
         label.pack(anchor="w", pady=(0, 5))
         
-        # Radio buttons
         self.bf_pattern_var = tk.StringVar(value="ACCEPT ALL")
         
         patterns = [
@@ -122,35 +108,31 @@ class ControlSettings:
             rb.pack(anchor="w", pady=2)
             self.bf_radio_buttons.append(rb)
         
-        # Current status label
         self.bf_status_label = tk.Label(
             bf_inner,
             text=f"Current: {self.bf_pattern}",
             font=("Arial", 9, "bold"),
-            fg="#00FF00",  # Green
+            fg="#00FF00",
             bg=Colors.PRIMARY_BG
         )
         self.bf_status_label.pack(anchor="w", pady=(8, 0))
     
     def _create_od_control(self, parent):
         """Create OD control section."""
-        # OD frame
         od_frame = tk.LabelFrame(
             parent,
             text="OD Control",
             font=("Arial", 10, "bold"),
-            fg="#00FFFF",  # Cyan
+            fg="#00FFFF",
             bg=Colors.PRIMARY_BG,
             bd=2,
             relief=tk.RIDGE
         )
         od_frame.grid(row=0, column=1, padx=5, pady=2, sticky="nsew")
         
-        # Inner frame
         od_inner = tk.Frame(od_frame, bg=Colors.PRIMARY_BG)
         od_inner.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
         
-        # Label
         label = tk.Label(
             od_inner,
             text="Select Pattern:",
@@ -160,7 +142,6 @@ class ControlSettings:
         )
         label.pack(anchor="w", pady=(0, 5))
         
-        # Radio buttons
         self.od_pattern_var = tk.StringVar(value="ACCEPT ALL")
         
         patterns = [
@@ -186,12 +167,11 @@ class ControlSettings:
             rb.pack(anchor="w", pady=2)
             self.od_radio_buttons.append(rb)
         
-        # Current status label
         self.od_status_label = tk.Label(
             od_inner,
             text=f"Current: {self.od_pattern}",
             font=("Arial", 9, "bold"),
-            fg="#00FF00",  # Green
+            fg="#00FF00",
             bg=Colors.PRIMARY_BG
         )
         self.od_status_label.pack(anchor="w", pady=(8, 0))
@@ -215,11 +195,9 @@ class ControlSettings:
     
     def _apply_disabled_state(self):
         """Apply disabled state to all radio buttons."""
-        # Disable BF radio buttons
         for rb in self.bf_radio_buttons:
             rb.config(state=tk.DISABLED)
         
-        # Disable OD radio buttons
         for rb in self.od_radio_buttons:
             rb.config(state=tk.DISABLED)
             
@@ -227,11 +205,9 @@ class ControlSettings:
         """Enable all pattern selection controls."""
         self.controls_disabled = False
         
-        # Enable BF radio buttons
         for rb in self.bf_radio_buttons:
             rb.config(state=tk.NORMAL)
         
-        # Enable OD radio buttons
         for rb in self.od_radio_buttons:
             rb.config(state=tk.NORMAL)
         

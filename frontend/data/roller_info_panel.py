@@ -25,13 +25,10 @@ class RollerInfoPanel:
         self.app = app_instance
         self.db = DataDatabase()
         
-        # Entry widgets
         self.entries = {}
         
-        # Currently selected roller ID (for update/delete)
         self.selected_roller_id = None
         
-        # Action buttons
         self.create_btn = None
         self.read_btn = None
         self.update_btn = None
@@ -39,7 +36,6 @@ class RollerInfoPanel:
         
     def create(self):
         """Create the roller info panel UI."""
-        # Main frame
         main_frame = tk.LabelFrame(
             self.parent,
             text="Roller Information",
@@ -51,11 +47,9 @@ class RollerInfoPanel:
         )
         main_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         
-        # Input fields frame
         fields_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         fields_frame.pack(fill=tk.X, padx=15, pady=(10, 10))
         
-        # Define fields
         fields = [
             ("Roller Type", "roller_type"),
             ("Outer Diameter (mm)", "outer_diameter"),
@@ -66,7 +60,6 @@ class RollerInfoPanel:
             ("Down Head (pixels)", "down_head_pixels")
         ]
         
-        # Create fields in a grid (7 columns)
         for idx, (label_text, field_name) in enumerate(fields):
             field_container = tk.Frame(fields_frame, bg=Colors.PRIMARY_BG)
             field_container.grid(row=0, column=idx, padx=5, pady=5, sticky="ew")
@@ -91,15 +84,12 @@ class RollerInfoPanel:
             
             self.entries[field_name] = entry
         
-        # Configure grid columns to expand equally
         for i in range(7):
             fields_frame.grid_columnconfigure(i, weight=1)
         
-        # Action buttons
         button_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         button_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
         
-        # Create button
         self.create_btn = tk.Button(
             button_frame,
             text="Create",
@@ -114,7 +104,6 @@ class RollerInfoPanel:
         )
         self.create_btn.pack(side=tk.LEFT, padx=5)
         
-        # Read button
         self.read_btn = tk.Button(
             button_frame,
             text="Read",
@@ -129,7 +118,6 @@ class RollerInfoPanel:
         )
         self.read_btn.pack(side=tk.LEFT, padx=5)
         
-        # Update button
         self.update_btn = tk.Button(
             button_frame,
             text="Update",
@@ -144,7 +132,6 @@ class RollerInfoPanel:
         )
         self.update_btn.pack(side=tk.LEFT, padx=5)
         
-        # Delete button
         self.delete_btn = tk.Button(
             button_frame,
             text="Delete",
@@ -162,7 +149,6 @@ class RollerInfoPanel:
     def create_roller(self):
         """Create a new roller entry."""
         try:
-            # Validate all fields are filled
             values = {}
             for field_name, entry in self.entries.items():
                 value = entry.get().strip()
@@ -171,7 +157,6 @@ class RollerInfoPanel:
                                        f"Please fill in all fields.\n\n{field_name} is empty.")
                     return
                 
-                # Validate numeric fields
                 if field_name != 'roller_type':
                     try:
                         if field_name in ['high_head_pixels', 'down_head_pixels']:
@@ -185,14 +170,12 @@ class RollerInfoPanel:
                 else:
                     values[field_name] = value
             
-            # Check if roller type already exists
             if self.db.roller_type_exists(values['roller_type']):
                 messagebox.showerror("Validation Error", 
                                    f"Roller type '{values['roller_type']}' already exists.\n\n"
                                    "Please use a unique name.")
                 return
             
-            # Validate against global limits
             global_limits = self.db.get_global_limits()
             if global_limits:
                 validation_errors = []
@@ -218,19 +201,15 @@ class RollerInfoPanel:
                                      "No global limits set. Please set global limits first for validation.")
                 return
             
-            # Get current user
             created_by = self.app.current_user if hasattr(self.app, 'current_user') else 'system'
             
-            # Create roller
             success = self.db.create_roller(values, created_by)
             
             if success:
                 messagebox.showinfo("Success", f"Roller '{values['roller_type']}' created successfully!")
                 self.clear_fields()
-                # Refresh table if available
                 if hasattr(self.app, 'data_tab') and self.app.data_tab and self.app.data_tab.roller_data_table:
                     self.app.data_tab.roller_data_table.load_roller_data()
-                # Set flag to refresh inference page roller list
                 self.app.roller_data_updated = True
             else:
                 messagebox.showerror("Error", "Failed to create roller.")
@@ -241,7 +220,6 @@ class RollerInfoPanel:
     
     def read_roller(self):
         """Read/Load selected roller from table."""
-        # Get selected roller from parent tab's table
         if hasattr(self.app, 'data_tab') and self.app.data_tab and self.app.data_tab.roller_data_table:
             selected = self.app.data_tab.roller_data_table.get_selected_roller()
             if selected:
@@ -287,7 +265,6 @@ class RollerInfoPanel:
                                      "Please select a roller using the 'Read' button first.")
                 return
             
-            # Validate all fields are filled
             values = {}
             for field_name, entry in self.entries.items():
                 value = entry.get().strip()
@@ -297,7 +274,6 @@ class RollerInfoPanel:
                                        f"Please fill in all fields.\n\n{field_name} is empty.")
                     return
                 
-                # Validate numeric fields
                 if field_name != 'roller_type':
                     try:
                         if field_name in ['high_head_pixels', 'down_head_pixels']:
@@ -312,7 +288,6 @@ class RollerInfoPanel:
                 else:
                     values[field_name] = value
             
-            # Check if roller type already exists (excluding current roller)
             if self.db.roller_type_exists(values['roller_type'], exclude_id=self.selected_roller_id):
                 log_warning("data", f"Update roller failed: Roller type '{values['roller_type']}' already exists")
                 messagebox.showerror("Validation Error", 
@@ -320,7 +295,6 @@ class RollerInfoPanel:
                                    "Please use a unique name.")
                 return
             
-            # Validate against global limits
             global_limits = self.db.get_global_limits()
             if global_limits:
                 validation_errors = []
@@ -343,7 +317,6 @@ class RollerInfoPanel:
                                        "Values exceed global limits:\n\n" + "\n".join(validation_errors))
                     return
             
-            # Update roller
             success = self.db.update_roller(self.selected_roller_id, values)
             
             if success:
@@ -351,10 +324,8 @@ class RollerInfoPanel:
                 messagebox.showinfo("Success", f"Roller '{values['roller_type']}' updated successfully!")
                 self.clear_fields()
                 self.selected_roller_id = None
-                # Refresh table
                 if hasattr(self.app, 'data_tab') and self.app.data_tab and self.app.data_tab.roller_data_table:
                     self.app.data_tab.roller_data_table.load_roller_data()
-                # Set flag to refresh inference page roller list
                 self.app.roller_data_updated = True
             else:
                 log_error("data", f"Failed to update roller '{values['roller_type']}' (ID: {self.selected_roller_id}) - Database operation returned False")
@@ -376,7 +347,6 @@ class RollerInfoPanel:
                                      "Please select a roller using the 'Read' button first.")
                 return
             
-            # Confirm deletion
             roller_type = self.entries['roller_type'].get().strip()
             response = messagebox.askyesno("Confirm Deletion", 
                                           f"Are you sure you want to delete roller '{roller_type}'?\n\n"
@@ -386,7 +356,6 @@ class RollerInfoPanel:
                 log_info("data", f"Roller deletion cancelled by user for '{roller_type}' (ID: {self.selected_roller_id})")
                 return
             
-            # Delete roller
             success = self.db.delete_roller(self.selected_roller_id)
             
             if success:
@@ -394,10 +363,8 @@ class RollerInfoPanel:
                 messagebox.showinfo("Success", f"Roller '{roller_type}' deleted successfully!")
                 self.clear_fields()
                 self.selected_roller_id = None
-                # Refresh table
                 if hasattr(self.app, 'data_tab') and self.app.data_tab and self.app.data_tab.roller_data_table:
                     self.app.data_tab.roller_data_table.load_roller_data()
-                # Set flag to refresh inference page roller list
                 self.app.roller_data_updated = True
             else:
                 log_error("data", f"Failed to delete roller '{roller_type}' (ID: {self.selected_roller_id}) - Database operation returned False")

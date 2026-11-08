@@ -28,11 +28,9 @@ class PreviewControlPanel:
         
     def setup(self):
         """Setup the preview control panel UI."""
-        # Control buttons frame
         self.control_frame = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
         self.control_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        # Start Preview button
         self.start_button = tk.Button(
             self.control_frame,
             text="▶ Start Preview",
@@ -46,12 +44,11 @@ class PreviewControlPanel:
         )
         self.start_button.pack(side=tk.LEFT, padx=10, pady=5)
         
-        # Stop Preview button
         self.stop_button = tk.Button(
             self.control_frame,
             text="⏹ Stop Preview",
             font=Fonts.TEXT_BOLD,
-            bg="#6c757d",  # Gray
+            bg="#6c757d",
             fg=Colors.WHITE,
             disabledforeground=Colors.WHITE,
             width=20,
@@ -61,37 +58,32 @@ class PreviewControlPanel:
         )
         self.stop_button.pack(side=tk.LEFT, padx=10, pady=5)
         
-        # Capture BF button (hidden by default)
         self.capture_bf_button = tk.Button(
             self.control_frame,
             text="📸 Capture BF",
             font=Fonts.TEXT_BOLD,
-            bg="#FFA500",  # Orange
+            bg="#FFA500",
             fg=Colors.WHITE,
             width=15,
             height=2,
             command=self._on_capture_bf
         )
-        # Don't pack yet - will be shown when preview starts
         
-        # Capture OD button (hidden by default)
         self.capture_od_button = tk.Button(
             self.control_frame,
             text="📸 Capture OD",
             font=Fonts.TEXT_BOLD,
-            bg="#FFA500",  # Orange
+            bg="#FFA500",
             fg=Colors.WHITE,
             width=15,
             height=2,
             command=self._on_capture_od
         )
-        # Don't pack yet - will be shown when preview starts
         
         return self.control_frame
     
     def _on_start_preview(self):
         """Handle start preview button click."""
-        # Show confirmation dialog
         from tkinter import messagebox
         confirm = messagebox.askyesno(
             "Confirm Start Preview",
@@ -103,16 +95,13 @@ class PreviewControlPanel:
         if not confirm:
             return
         
-        # Delegate to settings tab
         success = self.settings_tab.start_preview()
         
-        # Update button states only if preview started successfully
         if success:
             self.enable_stop()
     
     def _on_stop_preview(self):
         """Handle stop preview button click."""
-        # Show confirmation dialog
         from tkinter import messagebox
         confirm = messagebox.askyesno(
             "Confirm Stop Preview",
@@ -124,10 +113,8 @@ class PreviewControlPanel:
         if not confirm:
             return
         
-        # Delegate to settings tab
         self.settings_tab.stop_preview()
         
-        # Update button states
         self.enable_start()
     
     def _on_capture_bf(self):
@@ -145,7 +132,6 @@ class PreviewControlPanel:
         if self.stop_button:
             self.stop_button.config(state=tk.DISABLED, bg="#6c757d")
         
-        # Hide capture buttons
         if self.capture_bf_button:
             self.capture_bf_button.pack_forget()
         if self.capture_od_button:
@@ -158,7 +144,6 @@ class PreviewControlPanel:
         if self.stop_button:
             self.stop_button.config(state=tk.NORMAL, bg=Colors.DANGER)
         
-        # Show capture buttons after Stop button
         if self.capture_bf_button:
             self.capture_bf_button.pack(side=tk.LEFT, padx=10, pady=5)
         if self.capture_od_button:

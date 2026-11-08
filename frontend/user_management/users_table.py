@@ -29,11 +29,9 @@ class UsersTable:
     
     def create(self):
         """Create the users table UI."""
-        # Search frame - more compact
         search_frame = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
         search_frame.pack(fill=tk.X, padx=8, pady=(5, 5))
         
-        # Search label
         search_label = tk.Label(
             search_frame,
             text="🔍 Search:",
@@ -43,7 +41,6 @@ class UsersTable:
         )
         search_label.pack(side=tk.LEFT, padx=(0, 8))
         
-        # Search entry
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.search_users())
         
@@ -57,7 +54,6 @@ class UsersTable:
         )
         self.search_entry.pack(side=tk.LEFT, padx=3)
         
-        # Clear search button - smaller
         clear_btn = tk.Button(
             search_frame,
             text="❌",
@@ -70,15 +66,12 @@ class UsersTable:
         )
         clear_btn.pack(side=tk.LEFT, padx=3)
         
-        # Table frame - maximize space
         table_frame = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
         table_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0, 5))
         
-        # Configure style for dark theme
         style = ttk.Style()
         style.theme_use("clam")
         
-        # Configure Treeview colors
         style.configure(
             "Users.Treeview",
             background=Colors.SECONDARY_BG,
@@ -102,7 +95,6 @@ class UsersTable:
             foreground=[("selected", Colors.WHITE)]
         )
         
-        # Create Treeview
         columns = ("employee_id", "email", "role", "status", "created")
         self.tree = ttk.Treeview(
             table_frame,
@@ -112,35 +104,29 @@ class UsersTable:
             selectmode="browse"
         )
         
-        # Define column headings
         self.tree.heading("employee_id", text="👤 Employee ID", anchor=tk.W)
         self.tree.heading("email", text="📧 Email Address", anchor=tk.W)
         self.tree.heading("role", text="🔑 Role", anchor=tk.W)
         self.tree.heading("status", text="🔘 Status", anchor=tk.CENTER)
         self.tree.heading("created", text="📅 Created", anchor=tk.W)
         
-        # Define column widths - optimized
         self.tree.column("employee_id", width=120, minwidth=80)
         self.tree.column("email", width=200, minwidth=150)
         self.tree.column("role", width=120, minwidth=80)
         self.tree.column("status", width=80, minwidth=60, anchor=tk.CENTER)
         self.tree.column("created", width=100, minwidth=80)
         
-        # Scrollbars
         self.scrollbar_y = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
         self.scrollbar_x = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
         
         self.tree.configure(yscrollcommand=self.scrollbar_y.set, xscrollcommand=self.scrollbar_x.set)
         
-        # Pack scrollbars and treeview
         self.scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
         self.scrollbar_x.pack(side=tk.BOTTOM, fill=tk.X)
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        # Bind selection event
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         
-        # Bind double-click event
         self.tree.bind("<Double-1>", lambda e: self.tab.read_user())
     
     def load_users(self, users=None):
@@ -150,11 +136,9 @@ class UsersTable:
         Args:
             users: List of user dictionaries (if None, fetch from database)
         """
-        # Clear existing items
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        # Get users from database if not provided
         if users is None:
             from .user_database import UserDatabase
             db = UserDatabase()
@@ -164,12 +148,10 @@ class UsersTable:
             else:
                 users = []
         
-        # Insert users into table
         for user in users:
-            # Format created date
             created = user.get('created_at', '')
             if created and len(created) > 10:
-                created = created[:10]  # Show only date part
+                created = created[:10]
             
             self.tree.insert(
                 "",
@@ -181,7 +163,7 @@ class UsersTable:
                     user.get('status', ''),
                     created
                 ),
-                tags=(user.get('id'),)  # Store user ID in tags
+                tags=(user.get('id'),)
             )
     
     def search_users(self):
@@ -189,11 +171,9 @@ class UsersTable:
         search_term = self.search_var.get().strip()
         
         if not search_term:
-            # If search is empty, load all users
             self.load_users()
             return
         
-        # Search in database
         from .user_database import UserDatabase
         db = UserDatabase()
         if db.connect():
@@ -226,7 +206,6 @@ class UsersTable:
         
         user_id = tags[0]
         
-        # Fetch full user data from database
         from .user_database import UserDatabase
         db = UserDatabase()
         if db.connect():
@@ -240,5 +219,4 @@ class UsersTable:
         """Handle user selection event."""
         selected_user = self.get_selected_user()
         if selected_user:
-            # Populate user details panel
             self.tab.populate_user_details(selected_user)

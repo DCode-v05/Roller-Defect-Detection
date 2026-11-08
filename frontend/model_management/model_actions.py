@@ -28,11 +28,9 @@ class ModelActions:
         
     def create(self):
         """Create the action buttons UI."""
-        # Actions frame
         actions_frame = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
         actions_frame.pack(fill=tk.X, pady=(5, 5))
         
-        # Info label (left)
         info_label = tk.Label(
             actions_frame,
             text="💡 Double-click on any model to view details",
@@ -42,7 +40,6 @@ class ModelActions:
         )
         info_label.pack(side=tk.LEFT, padx=5)
         
-        # Delete Model button (right)
         delete_button = tk.Button(
             actions_frame,
             text="Delete Model",
@@ -70,7 +67,6 @@ class ModelActions:
             
             log_info("model_management", f"Attempting to delete model - Name: {model['model_name']}, Type: {model['model_type']}, ID: {model['id']}")
             
-            # Confirm deletion
             confirm = messagebox.askyesno(
                 "Confirm Deletion",
                 f"Are you sure you want to delete the model:\n\n"
@@ -84,14 +80,12 @@ class ModelActions:
                 log_info("model_management", f"Model deletion cancelled by user - {model['model_name']}")
                 return
             
-            # Delete from database
             db = ModelDatabase()
             if db.connect():
                 success = db.delete_model(model['id'], model['model_type'])
                 db.disconnect()
                 
                 if success:
-                    # Delete file from disk
                     try:
                         if os.path.exists(model['model_path']):
                             os.remove(model['model_path'])
@@ -106,10 +100,8 @@ class ModelActions:
                         f"Model '{model['model_name']}' deleted successfully!"
                     )
                     
-                    # Refresh table
                     self.tab.refresh_models()
                     
-                    # Reload models in app and notify other tabs
                     if hasattr(self.tab, 'app'):
                         self.tab.app.reload_models_and_notify_tabs()
                 else:

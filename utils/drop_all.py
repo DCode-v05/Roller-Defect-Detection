@@ -1,6 +1,5 @@
 import mysql.connector
 
-# Database connection configuration
 DB_CONFIG = {
     "host": "localhost",
     "user": "root",
@@ -16,7 +15,6 @@ def main():
         print(f"\nConnected to database: {DB_CONFIG['database']}")
         print("=" * 60)
 
-        # Get all tables
         cursor.execute("SHOW TABLES;")
         tables = [row[0] for row in cursor.fetchall()]
 
@@ -28,10 +26,8 @@ def main():
         for t in tables:
             print(f" - {t}")
 
-        # Disable foreign key checks
         cursor.execute("SET FOREIGN_KEY_CHECKS = 0;")
 
-        # Drop all tables
         for table in tables:
             try:
                 cursor.execute(f"DROP TABLE IF EXISTS `{table}`;")
@@ -39,7 +35,6 @@ def main():
             except Exception as e:
                 print(f"❌ Failed to drop {table}: {e}")
 
-        # Re-enable foreign key checks
         cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
 
         conn.commit()

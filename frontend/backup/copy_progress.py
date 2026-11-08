@@ -31,29 +31,23 @@ class CopyProgressWindow:
         success_count = 0
         total_files = len(file_list)
         
-        # Determine actual destination path
         if selected_files:
-            # Multiple files selected - copy to destination root
             actual_dest_path = dest_path
         else:
-            # Folder selected - include folder name in destination
             folder_name = os.path.basename(src_path)
             actual_dest_path = os.path.join(dest_path, folder_name)
         
-        # Create progress window
         progress_win = tk.Toplevel(parent)
         progress_win.title("Copying Files")
         progress_win.geometry("500x150")
         progress_win.transient(parent)
         progress_win.grab_set()
         
-        # Center window
         progress_win.update_idletasks()
         x = (progress_win.winfo_screenwidth() // 2) - (500 // 2)
         y = (progress_win.winfo_screenheight() // 2) - (150 // 2)
         progress_win.geometry(f"500x150+{x}+{y}")
         
-        # Progress label
         progress_label = tk.Label(
             progress_win,
             text="Preparing to copy...",
@@ -62,7 +56,6 @@ class CopyProgressWindow:
         )
         progress_label.pack()
         
-        # Progress bar
         progress_var = tk.DoubleVar()
         progress_bar = ttk.Progressbar(
             progress_win,
@@ -73,7 +66,6 @@ class CopyProgressWindow:
         )
         progress_bar.pack(pady=10)
         
-        # Status label
         status_label = tk.Label(
             progress_win,
             text="0 / 0",
@@ -82,29 +74,22 @@ class CopyProgressWindow:
         )
         status_label.pack()
         
-        # Copy files
         for idx, src_file in enumerate(file_list, 1):
             try:
-                # Update progress
                 progress_label.config(text=f"Copying: {os.path.basename(src_file)}")
                 status_label.config(text=f"{idx} / {total_files}")
                 progress_var.set((idx / total_files) * 100)
                 progress_win.update()
                 
-                # Determine destination file path
                 if selected_files:
-                    # Multiple files selected - copy to destination root
                     dest_file = os.path.join(actual_dest_path, os.path.basename(src_file))
                 else:
-                    # Folder selected - copy with folder name included
                     rel_path = os.path.relpath(src_file, src_path)
                     dest_file = os.path.join(actual_dest_path, rel_path)
                 
-                # Create destination directory if needed
                 dest_dir = os.path.dirname(dest_file)
                 os.makedirs(dest_dir, exist_ok=True)
                 
-                # Copy file
                 shutil.copy2(src_file, dest_file)
                 success_count += 1
                 
@@ -112,8 +97,6 @@ class CopyProgressWindow:
                 print(f"Error copying {src_file}: {e}")
                 continue
         
-        # Close progress window
         progress_win.destroy()
         
-        # Return the actual destination path where files were copied
         return success_count, actual_dest_path

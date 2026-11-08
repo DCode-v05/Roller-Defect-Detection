@@ -58,12 +58,10 @@ class DataDatabase:
             
             cursor = connection.cursor()
             
-            # Check if limits already exist
             cursor.execute("SELECT COUNT(*) FROM global_roller_limits")
             count = cursor.fetchone()[0]
             
             if count > 0:
-                # Update existing limits
                 update_query = """
                 UPDATE global_roller_limits 
                 SET min_outer_diameter = %s,
@@ -91,7 +89,6 @@ class DataDatabase:
                     updated_by
                 )
             else:
-                # Insert new limits
                 insert_query = """
                 INSERT INTO global_roller_limits 
                 (min_outer_diameter, max_outer_diameter, min_dimple_diameter, 

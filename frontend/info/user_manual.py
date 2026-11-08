@@ -25,7 +25,6 @@ class UserManual:
     
     def create(self):
         """Create the user manual UI."""
-        # Main frame
         main_frame = tk.LabelFrame(
             self.parent,
             text="📖 User Manual",
@@ -37,11 +36,9 @@ class UserManual:
         )
         main_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        # Container
         container = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         container.pack(fill=tk.X, padx=20, pady=15)
         
-        # Description
         desc_label = tk.Label(
             container,
             text="Access the comprehensive Welvision User Manual with detailed instructions and\ntroubleshooting guides",
@@ -52,12 +49,11 @@ class UserManual:
         )
         desc_label.pack(anchor=tk.W, pady=(0, 15))
         
-        # Button
         tk.Button(
             container,
             text="📄 Open User Manual",
             font=Fonts.TEXT_BOLD,
-            bg="#28A745",  # Green
+            bg="#28A745",
             fg=Colors.WHITE,
             activebackground="#218838",
             activeforeground=Colors.WHITE,
@@ -69,12 +65,9 @@ class UserManual:
     def open_user_manual(self):
         """Open the user manual PDF."""
         try:
-            # Define the path to user manual
             manual_path = "User_Manual.pdf"
             
-            # Check if file exists
             if os.path.exists(manual_path):
-                # Open PDF with default application
                 os.startfile(manual_path)
             else:
                 messagebox.showwarning(

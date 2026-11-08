@@ -66,9 +66,8 @@ class UserDatabase:
             tuple: (password_hash, salt)
         """
         if salt is None:
-            salt = secrets.token_hex(32)  # 64 character hex string
+            salt = secrets.token_hex(32)
         
-        # Combine password and salt, then hash
         password_salt = (password + salt).encode('utf-8')
         password_hash = hashlib.sha256(password_salt).hexdigest()
         
@@ -114,7 +113,6 @@ class UserDatabase:
             users = cursor.fetchall()
             cursor.close()
             
-            # Convert datetime objects to strings for display
             for user in users:
                 if user['locked_until']:
                     user['locked_until'] = user['locked_until'].strftime('%Y-%m-%d %H:%M:%S')
@@ -123,7 +121,6 @@ class UserDatabase:
                 if user['updated_at']:
                     user['updated_at'] = user['updated_at'].strftime('%Y-%m-%d %H:%M:%S')
                 
-                # Convert is_active to string
                 user['status'] = 'Active' if user['is_active'] else 'Inactive'
             
             return users
@@ -229,7 +226,6 @@ class UserDatabase:
             if not self.connection or not self.connection.is_connected():
                 self.connect()
             
-            # Check if employee_id or email already exists
             cursor = self.connection.cursor()
             check_query = "SELECT employee_id, email FROM users WHERE employee_id = %s OR email = %s"
             cursor.execute(check_query, (employee_id, email))
@@ -242,10 +238,8 @@ class UserDatabase:
                 else:
                     return False, f"Email '{email}' already exists"
             
-            # Hash password
             password_hash, salt = self.hash_password(password)
             
-            # Insert new user
             insert_query = """
             INSERT INTO users (employee_id, email, password_hash, salt, role, is_active, failed_attempts)
             VALUES (%s, %s, %s, %s, %s, %s, 0)
@@ -282,7 +276,6 @@ class UserDatabase:
             
             cursor = self.connection.cursor()
             
-            # Check if employee_id or email already exists for other users
             check_query = """
             SELECT id, employee_id, email FROM users 
             WHERE (employee_id = %s OR email = %s) AND id != %s
@@ -297,7 +290,6 @@ class UserDatabase:
                 else:
                     return False, f"Email '{email}' already exists for another user"
             
-            # Update user
             update_query = """
             UPDATE users 
             SET employee_id = %s, email = %s, role = %s, is_active = %s
@@ -362,12 +354,10 @@ class UserDatabase:
             if not self.connection or not self.connection.is_connected():
                 self.connect()
             
-            # Generate new hash and salt
             password_hash, salt = self.hash_password(new_password)
             
             cursor = self.connection.cursor()
             
-            # Update password and reset failed attempts
             update_query = """
             UPDATE users 
             SET password_hash = %s, salt = %s, failed_attempts = 0, locked_until = NULL
@@ -403,7 +393,6 @@ class UserDatabase:
             
             cursor = self.connection.cursor(dictionary=True)
             
-            # Get user data
             query = """
             SELECT id, employee_id, email, password_hash, salt, role, 
                    is_active, failed_attempts, locked_until
@@ -418,12 +407,10 @@ class UserDatabase:
                 cursor.close()
                 return False, "Invalid email or password", None
             
-            # Check if account is inactive
             if not user['is_active']:
                 cursor.close()
                 return False, "Account is inactive. Contact administrator.", None
             
-            # Check if account is locked
             if user['locked_until']:
                 if datetime.now() < user['locked_until']:
                     remaining_seconds = (user['locked_until'] - datetime.now()).seconds
@@ -435,23 +422,18 @@ class UserDatabase:
                         cursor.close()
                         return False, f"Account locked. Try again in {remaining_minutes} minutes.", None
                 else:
-                    # Unlock account
                     unlock_query = "UPDATE users SET locked_until = NULL, failed_attempts = 0 WHERE id = %s"
                     cursor.execute(unlock_query, (user['id'],))
                     self.connection.commit()
             
-            # Check role
             if user['role'] != role:
                 cursor.close()
                 return False, "Invalid role selected", None
             
-            # Verify password
             if not self.verify_password(password, user['password_hash'], user['salt']):
-                # Increment failed attempts
                 failed_attempts = user['failed_attempts'] + 1
                 
                 if failed_attempts >= 3:
-                    # Lock account for 5 minutes
                     locked_until = datetime.now() + timedelta(minutes=5)
                     update_query = """
                     UPDATE users 
@@ -463,14 +445,12 @@ class UserDatabase:
                     cursor.close()
                     return False, "Too many failed attempts. Account locked for 5 minutes.", None
                 else:
-                    # Update failed attempts
                     update_query = "UPDATE users SET failed_attempts = %s WHERE id = %s"
                     cursor.execute(update_query, (failed_attempts, user['id']))
                     self.connection.commit()
                     cursor.close()
                     return False, f"Invalid password. {3 - failed_attempts} attempts remaining.", None
             
-            # Successful login - reset failed attempts
             reset_query = "UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = %s"
             cursor.execute(reset_query, (user['id'],))
             self.connection.commit()
@@ -516,7 +496,6 @@ class UserDatabase:
             users = cursor.fetchall()
             cursor.close()
             
-            # Format dates
             for user in users:
                 if user['locked_until']:
                     user['locked_until'] = user['locked_until'].strftime('%Y-%m-%d %H:%M:%S')

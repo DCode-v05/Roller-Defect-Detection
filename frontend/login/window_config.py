@@ -15,9 +15,7 @@ class WindowConfig:
         Args:
             window: Tk window instance to configure
         """
-        # Make window come to front and get focus
         window.lift()
         window.focus_force()
         
-        # Start maximized
-        window.state('zoomed')  # For Windows
+        window.state('zoomed')

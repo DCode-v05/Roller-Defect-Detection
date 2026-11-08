@@ -31,7 +31,7 @@ class PreviewCameraFeed:
         self.camera_frame = None
         self._last_update_time = 0
         self._frame_skip_counter = 0
-        self._image_id = None  # Track canvas image ID for efficient updates
+        self._image_id = None
         
     def create(self, row, column):
         """
@@ -41,7 +41,6 @@ class PreviewCameraFeed:
             row: Grid row position
             column: Grid column position
         """
-        # Create frame for this camera
         self.camera_frame = tk.LabelFrame(
             self.parent,
             text=self.title,
@@ -53,7 +52,6 @@ class PreviewCameraFeed:
         )
         self.camera_frame.grid(row=row, column=column, padx=5, pady=5, sticky="nsew")
         
-        # Create canvas for displaying video
         self.canvas = tk.Canvas(
             self.camera_frame,
             bg=Colors.BLACK,
@@ -76,55 +74,44 @@ class PreviewCameraFeed:
             return
         
         try:
-            # Check if canvas still exists (not destroyed)
             if not self.canvas.winfo_exists():
                 return
             
-            # Throttle updates to max 30 FPS (33ms minimum between frames)
             import time
             current_time = time.time()
             time_since_last_update = current_time - self._last_update_time
             
-            # Skip frames if updating too frequently
-            if time_since_last_update < 0.033:  # ~30 FPS max
+            if time_since_last_update < 0.033:
                 self._frame_skip_counter += 1
-                if self._frame_skip_counter < 2:  # Skip every other frame when needed
+                if self._frame_skip_counter < 2:
                     return
                 else:
                     self._frame_skip_counter = 0
             
             self._last_update_time = current_time
             
-            # Resize frame to fit canvas
             resized_frame = cv2.resize(frame, (AppConfig.CAMERA_WIDTH, AppConfig.CAMERA_HEIGHT))
             
-            # Convert from BGR to RGB
             img = PIL.Image.fromarray(cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB))
             imgtk = PIL.ImageTk.PhotoImage(image=img)
             
-            # Memory leak fix: Create new image first, then delete old one (prevents flicker)
             old_image_id = self._image_id
             self._image_id = self.canvas.create_image(0, 0, anchor=tk.NW, image=imgtk)
             self.canvas.image = imgtk
             
-            # Delete old image after new one is displayed
             if old_image_id is not None:
                 self.canvas.delete(old_image_id) 
             
         except tk.TclError:
-            # Widget has been destroyed, stop updating
             return
         except Exception as e:
-            # Handle any other exceptions silently (reduce console spam)
             pass
     
     def cleanup(self):
         """Clean up resources and clear canvas."""
         try:
             if self.canvas and self.canvas.winfo_exists():
-                # Delete all canvas items
                 self.canvas.delete("all")
-                # Clear image reference
                 if hasattr(self.canvas, 'image'):
                     delattr(self.canvas, 'image')
             self._image_id = None
@@ -148,21 +135,17 @@ class PreviewCameraManager:
         
     def setup(self):
         """Setup all preview camera feeds."""
-        # Create main camera container
         self.camera_container = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
         self.camera_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Configure grid weights for responsive layout
         self.camera_container.grid_columnconfigure(0, weight=1)
         self.camera_container.grid_columnconfigure(1, weight=1)
         self.camera_container.grid_rowconfigure(0, weight=1)
         
-        # Create BF camera feed (left)
         bf_feed = PreviewCameraFeed(self.camera_container, "BF Preview", "bf")
         bf_feed.create(row=0, column=0)
         self.feeds['bf'] = bf_feed
         
-        # Create OD camera feed (right)
         od_feed = PreviewCameraFeed(self.camera_container, "OD Preview", "od")
         od_feed.create(row=0, column=1)
         self.feeds['od'] = od_feed

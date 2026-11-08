@@ -7,7 +7,6 @@ Defines permissions for different user roles
 class Permissions:
     """Permission definitions for role-based access control."""
     
-    # Role hierarchy
     ROLES = {
         "Operator": 1,
         "Admin": 2,

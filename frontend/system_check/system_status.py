@@ -23,7 +23,6 @@ class SystemStatus:
         self.app = app_instance
         self.system_check_tab = system_check_tab
         
-        # Status labels
         self.system_status_label = None
         self.system_message_label = None
         self.bf_presence_sensor_label = None
@@ -33,7 +32,6 @@ class SystemStatus:
         
     def create(self):
         """Create the system status UI."""
-        # Main frame
         status_frame = tk.LabelFrame(
             self.parent,
             text="System Status",
@@ -45,27 +43,21 @@ class SystemStatus:
         )
         status_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        # Inner container
         inner_frame = tk.Frame(status_frame, bg=Colors.PRIMARY_BG)
         inner_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=8)
         
-        # Create two columns
         inner_frame.grid_columnconfigure(0, weight=1)
         inner_frame.grid_columnconfigure(1, weight=1)
         
-        # System Status (Left)
         self._create_system_status_section(inner_frame)
         
-        # Sensor Status (Right)
         self._create_sensor_status_section(inner_frame)
     
     def _create_system_status_section(self, parent):
         """Create system status section."""
-        # Container
         status_container = tk.Frame(parent, bg=Colors.PRIMARY_BG)
         status_container.grid(row=0, column=0, padx=10, pady=5, sticky="nsew")
         
-        # Title
         title_label = tk.Label(
             status_container,
             text="System Status:",
@@ -75,17 +67,15 @@ class SystemStatus:
         )
         title_label.pack(anchor="w", pady=(0, 5))
         
-        # Status value
         self.system_status_label = tk.Label(
             status_container,
             text="STOPPED",
             font=("Arial", 14, "bold"),
-            fg="#FF0000",  # Red
+            fg="#FF0000",
             bg=Colors.PRIMARY_BG
         )
         self.system_status_label.pack(anchor="w", pady=(0, 5))
         
-        # Warning icon and message
         warning_frame = tk.Frame(status_container, bg=Colors.PRIMARY_BG)
         warning_frame.pack(anchor="w")
         
@@ -93,7 +83,7 @@ class SystemStatus:
             warning_frame,
             text="⚠",
             font=("Arial", 12),
-            fg="#FFD700",  # Gold
+            fg="#FFD700",
             bg=Colors.PRIMARY_BG
         )
         warning_icon.pack(side=tk.LEFT, padx=(0, 5))
@@ -102,18 +92,16 @@ class SystemStatus:
             warning_frame,
             text="System stopped - No rollers will be processed",
             font=("Arial", 9),
-            fg="#FFD700",  # Gold
+            fg="#FFD700",
             bg=Colors.PRIMARY_BG
         )
         self.system_message_label.pack(side=tk.LEFT)
     
     def _create_sensor_status_section(self, parent):
         """Create sensor status section."""
-        # Container
         sensor_container = tk.Frame(parent, bg=Colors.PRIMARY_BG)
         sensor_container.grid(row=0, column=1, padx=10, pady=5, sticky="nsew")
         
-        # Title
         title_label = tk.Label(
             sensor_container,
             text="Sensor Status:",
@@ -123,7 +111,6 @@ class SystemStatus:
         )
         title_label.pack(anchor="w", pady=(0, 5))
         
-        # BigFace Presence sensor
         bf_presence_frame = tk.Frame(sensor_container, bg=Colors.PRIMARY_BG)
         bf_presence_frame.pack(anchor="w", pady=3)
         
@@ -147,7 +134,6 @@ class SystemStatus:
         )
         self.bf_presence_sensor_label.pack(side=tk.LEFT)
         
-        # BigFace Accept/Reject sensor
         bf_accept_frame = tk.Frame(sensor_container, bg=Colors.PRIMARY_BG)
         bf_accept_frame.pack(anchor="w", pady=3)
         
@@ -171,7 +157,6 @@ class SystemStatus:
         )
         self.bf_accept_sensor_label.pack(side=tk.LEFT)
         
-        # OD Presence sensor
         od_presence_frame = tk.Frame(sensor_container, bg=Colors.PRIMARY_BG)
         od_presence_frame.pack(anchor="w", pady=3)
         
@@ -195,7 +180,6 @@ class SystemStatus:
         )
         self.od_presence_sensor_label.pack(side=tk.LEFT)
         
-        # OD Accept/Reject sensor
         od_accept_frame = tk.Frame(sensor_container, bg=Colors.PRIMARY_BG)
         od_accept_frame.pack(anchor="w", pady=3)
         
@@ -227,7 +211,6 @@ class SystemStatus:
             shared_data: Dictionary containing system status data
             system_running: Boolean indicating if system check is running
         """
-        # Update system status based on System Check state
         if system_running:
             self.system_status_label.config(text="RUNNING", fg="#00FF00")
             self.system_message_label.config(
@@ -241,38 +224,29 @@ class SystemStatus:
                 fg="#FFD700"
             )
         
-        # Update sensor status
-        # BF Presence - Byte 0, Bit 1
         bf_presence = shared_data.get('bigface_presence', False)
         
-        # BF Accept/Reject - Byte 0, Bit 2
         bf_accept_reject = shared_data.get('bigface', False)
         
-        # OD Presence - Byte 1, Bit 4
         od_presence = shared_data.get('od_presence', False)
         
-        # OD Accept/Reject - Byte 0, Bit 0
         od_accept_reject = shared_data.get('od', False)
         
-        # Update BF Presence
         if bf_presence:
             self.bf_presence_sensor_label.config(text="ON", fg="#00FF00")
         else:
             self.bf_presence_sensor_label.config(text="OFF", fg="#888888")
         
-        # Update BF Accept/Reject
         if bf_accept_reject:
             self.bf_accept_sensor_label.config(text="ON", fg="#00FF00")
         else:
             self.bf_accept_sensor_label.config(text="OFF", fg="#888888")
         
-        # Update OD Presence
         if od_presence:
             self.od_presence_sensor_label.config(text="ON", fg="#00FF00")
         else:
             self.od_presence_sensor_label.config(text="OFF", fg="#888888")
         
-        # Update OD Accept/Reject
         if od_accept_reject:
             self.od_accept_sensor_label.config(text="ON", fg="#00FF00")
         else:

@@ -12,7 +12,6 @@ Date: October 2025
 import sys
 import os
 
-# Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from frontend.app import WelVisionApp
@@ -21,7 +20,6 @@ from frontend.app import WelVisionApp
 def main():
     """Main entry point for the application."""  
     try:
-        # Create and run the application
         app = WelVisionApp()
         app.protocol("WM_DELETE_WINDOW", app.on_closing)
         app.mainloop()

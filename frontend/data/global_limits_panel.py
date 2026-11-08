@@ -26,19 +26,15 @@ class GlobalLimitsPanel:
         self.app = app_instance
         self.db = DataDatabase()
         
-        # Entry widgets
         self.entries = {}
         
         
     def create(self):
         """Create the global limits panel UI."""
-        # Get user role
         user_role = getattr(self.app, 'current_role', 'Operator')
         
-        # Check if user can modify limits (write access)
         can_modify = Permissions.can_modify_global_roller_limits(user_role)
         
-        # Main frame with collapsible header
         access_text = "(Read-Write)" if can_modify else "(Read-Only)"
         title_text = f"🌐 Global Roller Limits {access_text}"
         
@@ -53,7 +49,6 @@ class GlobalLimitsPanel:
         )
         main_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         
-        # Description
         desc_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         desc_frame.pack(fill=tk.X, padx=15, pady=(10, 5))
         
@@ -67,7 +62,6 @@ class GlobalLimitsPanel:
         )
         desc_label.pack()
         
-        # Current Machine Range Display
         range_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         range_frame.pack(fill=tk.X, padx=15, pady=(5, 10))
         
@@ -81,7 +75,6 @@ class GlobalLimitsPanel:
         range_title.pack(side=tk.LEFT)
 
         
-        # Refresh button
         refresh_btn = tk.Button(
             range_frame,
             text="🔄 Refresh",
@@ -96,11 +89,9 @@ class GlobalLimitsPanel:
         )
         refresh_btn.pack(side=tk.RIGHT)
         
-        # Input fields frame
         fields_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         fields_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
         
-        # Create input fields in a grid
         fields = [
             ("Min Outer Diameter (mm):", "min_outer_diameter", "#00CED1"),
             ("Min Dimple Diameter (mm):", "min_dimple_diameter", "#00CED1"),
@@ -140,11 +131,9 @@ class GlobalLimitsPanel:
             
             self.entries[field_name] = entry
         
-        # Configure grid columns to expand equally
         for i in range(4):
             fields_frame.grid_columnconfigure(i, weight=1)
         
-        # Warning message
         warning_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         warning_frame.pack(fill=tk.X, padx=15, pady=(5, 10))
         
@@ -164,11 +153,9 @@ class GlobalLimitsPanel:
         )
         warning_label.pack()
         
-        # Action buttons
         button_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         button_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
         
-        # Save Machine range button (only for Super Admin)
         if can_modify:
             save_btn = tk.Button(
                 button_frame,
@@ -184,7 +171,6 @@ class GlobalLimitsPanel:
             )
             save_btn.pack(side=tk.LEFT, padx=5)
         
-        # Load Current button (available to all users)
         load_btn = tk.Button(
             button_frame,
             text="📁 Load Current",
@@ -199,7 +185,6 @@ class GlobalLimitsPanel:
         )
         load_btn.pack(side=tk.LEFT, padx=5)
         
-        # Clear Fields button (only for Super Admin)
         if can_modify:
             clear_btn = tk.Button(
                 button_frame,
@@ -220,7 +205,6 @@ class GlobalLimitsPanel:
         try:
             log_info("data", "Attempting to save global roller limits")
             
-            # Validate all fields are filled
             values = {}
             for field_name, entry in self.entries.items():
                 value = entry.get().strip()
@@ -238,7 +222,6 @@ class GlobalLimitsPanel:
                                        f"Invalid value for {field_name}.\n\nPlease enter a valid number.")
                     return
             
-            # Validate min < max for each dimension
             validations = [
                 ("min_outer_diameter", "max_outer_diameter", "Outer Diameter"),
                 ("min_dimple_diameter", "max_dimple_diameter", "Dimple Diameter"),
@@ -253,10 +236,8 @@ class GlobalLimitsPanel:
                                        f"{dimension_name}: Minimum value must be less than maximum value.")
                     return
             
-            # Get current user
             updated_by = self.app.current_user if hasattr(self.app, 'current_user') else 'system'
             
-            # Save to database
             success = self.db.save_global_limits(values, updated_by)
             
             if success:
@@ -278,14 +259,12 @@ class GlobalLimitsPanel:
             limits = self.db.get_global_limits()
             
             if limits:
-                # Clear and populate fields
                 for field_name in ['min_outer_diameter', 'max_outer_diameter', 
                                   'min_dimple_diameter', 'max_dimple_diameter',
                                   'min_small_diameter', 'max_small_diameter',
                                   'min_length', 'max_length']:
                     if field_name in self.entries:
                         entry = self.entries[field_name]
-                        # Enable entry temporarily if it's read-only
                         state = entry.cget('state')
                         if state == 'readonly':
                             entry.config(state='normal')
@@ -293,7 +272,6 @@ class GlobalLimitsPanel:
                         entry.delete(0, tk.END)
                         entry.insert(0, str(limits[field_name]))
                         
-                        # Restore state if it was read-only
                         if state == 'readonly':
                             entry.config(state='readonly')
                 

@@ -24,13 +24,11 @@ class ProgressWindow:
         self.window.transient(parent)
         self.window.grab_set()
         
-        # Center window
         self.window.update_idletasks()
         x = (self.window.winfo_screenwidth() // 2) - (300 // 2)
         y = (self.window.winfo_screenheight() // 2) - (100 // 2)
         self.window.geometry(f"300x100+{x}+{y}")
         
-        # Progress label
         label = tk.Label(
             self.window,
             text=message,

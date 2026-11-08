@@ -27,7 +27,6 @@ class UserActions:
         actions_frame = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
         actions_frame.pack(fill=tk.X, padx=10, pady=(5, 5))
         
-        # Button configuration - more compact
         button_config = {
             'font': ("Arial", 11, "bold"),
             'cursor': 'hand2',
@@ -36,7 +35,6 @@ class UserActions:
             'pady': 8
         }
         
-        # Add New User button
         add_btn = tk.Button(
             actions_frame,
             text="➕ Add New User",
@@ -47,7 +45,6 @@ class UserActions:
         )
         add_btn.pack(side=tk.LEFT, padx=5)
         
-        # Read User button
         read_btn = tk.Button(
             actions_frame,
             text="📖 Read User",
@@ -58,7 +55,6 @@ class UserActions:
         )
         read_btn.pack(side=tk.LEFT, padx=5)
         
-        # Update User button
         update_btn = tk.Button(
             actions_frame,
             text="🔄 Update User",
@@ -69,18 +65,16 @@ class UserActions:
         )
         update_btn.pack(side=tk.LEFT, padx=5)
         
-        # Change Password button
         password_btn = tk.Button(
             actions_frame,
             text="🔐 Change Password",
-            bg="#fd7e14",  # Orange color
+            bg="#fd7e14",
             fg=Colors.WHITE,
             command=self.tab.change_password,
             **button_config
         )
         password_btn.pack(side=tk.LEFT, padx=5)
         
-        # Delete User button
         delete_btn = tk.Button(
             actions_frame,
             text="🗑️ Delete User",
@@ -91,7 +85,6 @@ class UserActions:
         )
         delete_btn.pack(side=tk.LEFT, padx=5)
         
-        # Clear Form button
         clear_btn = tk.Button(
             actions_frame,
             text="🔄 Clear Form",
@@ -131,7 +124,6 @@ class UserActions:
         if len(password) < 6:
             return False, "Password must be at least 6 characters long"
         
-        # Check for at least one letter and one number
         has_letter = any(c.isalpha() for c in password)
         has_digit = any(c.isdigit() for c in password)
         

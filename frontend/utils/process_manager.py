@@ -54,12 +54,10 @@ class ProcessManager:
         Args:
             timeout: Maximum time to wait for process termination
         """
-        # Stop PLC process first
         if self.plc_process and self.plc_process.is_alive():
             self._terminate_process_tree(self.plc_process, timeout)
             self.plc_process = None
         
-        # Stop all inference processes
         for process in self.inference_processes[:]:
             if process and process.is_alive():
                 self._terminate_process_tree(process, timeout)
@@ -126,25 +124,20 @@ class ProcessManager:
             timeout: Maximum time to wait for termination
         """
         try:
-            # Get parent PID
             parent_pid = parent_process.pid
             
-            # Find and terminate all child processes
             try:
                 parent = psutil.Process(parent_pid)
                 children = parent.children(recursive=True)
                 
-                # Terminate children first
                 for child in children:
                     try:
                         child.terminate()
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
                 
-                # Wait for children to terminate
                 gone, alive = psutil.wait_procs(children, timeout=timeout/2)
                 
-                # Force kill if still alive
                 for p in alive:
                     try:
                         p.kill()
@@ -154,12 +147,10 @@ class ProcessManager:
             except psutil.NoSuchProcess:
                 pass
             
-            # Terminate parent process
             try:
                 parent_process.terminate()
                 parent_process.join(timeout=timeout/2)
                 
-                # Force kill if still alive
                 if parent_process.is_alive():
                     parent_process.kill()
                     parent_process.join(timeout=1.0)

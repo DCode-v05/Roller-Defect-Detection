@@ -23,16 +23,14 @@ class StorageChecker:
             bool: True if enough space available, False otherwise
         """
         try:
-            # Get disk usage statistics
             disk_usage = psutil.disk_usage(dest_path)
             available_mb = disk_usage.free / (1024 * 1024)
             
-            # Check if sufficient space
             return available_mb >= required_mb
         
         except Exception as e:
             print(f"Error checking storage: {e}")
-            return True  # Optimistically proceed if check fails
+            return True
     
     @staticmethod
     def check_storage_space(dest_path, required_size):
@@ -47,7 +45,6 @@ class StorageChecker:
             bool: True if enough space or user confirms, False otherwise
         """
         try:
-            # Get disk usage statistics
             disk_usage = psutil.disk_usage(dest_path)
             
             available_space = disk_usage.free
@@ -55,7 +52,6 @@ class StorageChecker:
             available_mb = available_space / (1024 * 1024)
             available_gb = available_space / (1024 * 1024 * 1024)
             
-            # Check if sufficient space (with 10% safety margin)
             if available_space < (required_size * 1.1):
                 messagebox.showerror(
                     "Insufficient Storage",
@@ -66,7 +62,6 @@ class StorageChecker:
                 )
                 return False
             
-            # Show storage info
             messagebox.showinfo(
                 "Storage Check",
                 f"✅ Storage Check Passed\n\n"
@@ -79,7 +74,6 @@ class StorageChecker:
         
         except Exception as e:
             print(f"Error checking storage: {e}")
-            # If we can't check, ask user to proceed
             return messagebox.askyesno(
                 "Storage Check Failed",
                 f"⚠️ Unable to check storage space.\n\n"

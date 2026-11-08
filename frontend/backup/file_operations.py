@@ -24,13 +24,10 @@ class FileOperations:
         """
         files = []
         
-        # If multiple files were selected
         if selected_files:
             return selected_files
         
-        # If a folder was selected
         if src_path and os.path.isdir(src_path):
-            # Recursively find all image files
             image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp'}
             
             for root, dirs, filenames in os.walk(src_path):

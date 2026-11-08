@@ -32,7 +32,6 @@ class UploadSection:
         
     def create(self):
         """Create the upload section UI."""
-        # Main upload frame
         upload_frame = tk.LabelFrame(
             self.parent,
             text="Upload New Model",
@@ -44,11 +43,9 @@ class UploadSection:
         )
         upload_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Inner container
         inner_frame = tk.Frame(upload_frame, bg=Colors.PRIMARY_BG)
         inner_frame.pack(fill=tk.X, padx=20, pady=15)
         
-        # Left side - Model Name
         left_frame = tk.Frame(inner_frame, bg=Colors.PRIMARY_BG)
         left_frame.pack(side=tk.LEFT, padx=(0, 30))
         
@@ -72,7 +69,6 @@ class UploadSection:
         )
         name_entry.pack()
         
-        # Middle - Model Type
         middle_frame = tk.Frame(inner_frame, bg=Colors.PRIMARY_BG)
         middle_frame.pack(side=tk.LEFT, padx=(0, 30))
         
@@ -87,7 +83,6 @@ class UploadSection:
         
         self.model_type_var = tk.StringVar(value="BIGFACE")
         
-        # Create a styled dropdown using ttk.Combobox
         import tkinter.ttk as ttk
         style = ttk.Style()
         style.configure(
@@ -110,11 +105,9 @@ class UploadSection:
         )
         type_dropdown.pack()
         
-        # Right side - Upload button
         right_frame = tk.Frame(inner_frame, bg=Colors.PRIMARY_BG)
         right_frame.pack(side=tk.LEFT)
         
-        # Spacer to align with entry fields
         spacer = tk.Label(
             right_frame,
             text="",
@@ -138,7 +131,6 @@ class UploadSection:
         )
         upload_button.pack()
         
-        # File info label
         self.file_label = tk.Label(
             upload_frame,
             text="No file selected",
@@ -150,7 +142,6 @@ class UploadSection:
     
     def _browse_and_upload(self):
         """Browse for model file and upload."""
-        # Validate inputs
         model_name = self.model_name_var.get().strip()
         model_type = self.model_type_var.get()
         
@@ -158,7 +149,6 @@ class UploadSection:
             messagebox.showerror("Error", "Please enter a model name!")
             return
         
-        # Browse for file
         file_path = filedialog.askopenfilename(
             title="Select Model File",
             filetypes=[
@@ -170,11 +160,9 @@ class UploadSection:
         if not file_path:
             return
         
-        # Update file label
         file_name = os.path.basename(file_path)
         self.file_label.config(text=f"Selected: {file_name}", fg="#00ff00")
         
-        # Upload model
         self._upload_model(model_name, model_type, file_path)
     
     def _upload_model(self, model_name, model_type, source_file):
@@ -189,23 +177,18 @@ class UploadSection:
         try:
             log_info("model_management", f"Attempting to upload model - Name: {model_name}, Type: {model_type}")
             
-            # Create destination directory
             username = os.getlogin()
             dest_dir = f"C:\\Users\\{username}\\Desktop\\Models\\{model_type}"
             os.makedirs(dest_dir, exist_ok=True)
             
-            # Generate unique filename if model already exists
             base_name = os.path.basename(source_file)
             dest_path = os.path.join(dest_dir, base_name)
             
             log_info("model_management", f"Copying model file to: {dest_path}")
-            # Copy file
             shutil.copy2(source_file, dest_path)
             
-            # Save to database
             db = ModelDatabase()
             if db.connect():
-                # Get current user email
                 uploaded_by = self.tab.app.current_user if hasattr(self.tab.app, 'current_user') else "Unknown"
                 
                 success = db.insert_model(
@@ -224,14 +207,11 @@ class UploadSection:
                         f"Model '{model_name}' uploaded successfully!\n\nSaved to: {dest_path}"
                     )
                     
-                    # Clear form
                     self.model_name_var.set("")
                     self.file_label.config(text="No file selected", fg="#888888")
                     
-                    # Refresh table
                     self.tab.refresh_models()
                     
-                    # Reload models in app and notify other tabs
                     if hasattr(self.tab, 'app'):
                         self.tab.app.reload_models_and_notify_tabs()
                 else:

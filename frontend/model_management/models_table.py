@@ -27,7 +27,6 @@ class ModelsTable:
         
     def create(self):
         """Create the models table UI."""
-        # Filter section
         filter_frame = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
         filter_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
         
@@ -40,7 +39,6 @@ class ModelsTable:
         )
         filter_label.pack(side=tk.LEFT, padx=(0, 10))
         
-        # Radio buttons for filtering
         self.filter_var = tk.StringVar(value="ALL")
         
         radio_frame = tk.Frame(filter_frame, bg=Colors.PRIMARY_BG)
@@ -62,7 +60,6 @@ class ModelsTable:
             )
             rb.pack(side=tk.LEFT, padx=5)
         
-        # Refresh button
         refresh_button = tk.Button(
             filter_frame,
             text="Refresh",
@@ -78,18 +75,15 @@ class ModelsTable:
         )
         refresh_button.pack(side=tk.RIGHT, padx=5)
         
-        # Table frame with scrollbars
         table_frame = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
         table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(5, 10))
         
-        # Scrollbars
         vsb = ttk.Scrollbar(table_frame, orient="vertical")
         vsb.pack(side=tk.RIGHT, fill=tk.Y)
         
         hsb = ttk.Scrollbar(table_frame, orient="horizontal")
         hsb.pack(side=tk.BOTTOM, fill=tk.X)
         
-        # Treeview
         columns = ("ID", "Name", "Type", "Model Path", "Upload Date", "Uploaded By")
         self.tree = ttk.Treeview(
             table_frame,
@@ -97,13 +91,12 @@ class ModelsTable:
             show="headings",
             yscrollcommand=vsb.set,
             xscrollcommand=hsb.set,
-            height=8  # Reduced from 15 to 8 for better visibility
+            height=8
         )
         
         vsb.config(command=self.tree.yview)
         hsb.config(command=self.tree.xview)
         
-        # Configure columns
         self.tree.column("ID", width=50, anchor=tk.CENTER)
         self.tree.column("Name", width=200, anchor=tk.W)
         self.tree.column("Type", width=100, anchor=tk.CENTER)
@@ -111,15 +104,12 @@ class ModelsTable:
         self.tree.column("Upload Date", width=150, anchor=tk.CENTER)
         self.tree.column("Uploaded By", width=150, anchor=tk.CENTER)
         
-        # Configure headings
         for col in columns:
             self.tree.heading(col, text=col, anchor=tk.CENTER)
         
-        # Style configuration
         style = ttk.Style()
         style.theme_use("default")
         
-        # Configure treeview colors
         style.configure(
             "Treeview",
             background="#FFFFFF",
@@ -145,10 +135,8 @@ class ModelsTable:
         
         self.tree.pack(fill=tk.BOTH, expand=True)
         
-        # Bind double-click event to show details
         self.tree.bind("<Double-1>", self._on_double_click)
         
-        # Status label
         self.status_label = tk.Label(
             self.parent,
             text="Ready",
@@ -164,16 +152,13 @@ class ModelsTable:
         if not selection:
             return
         
-        # Get selected model data
         model = self.get_selected_model()
         if not model:
             return
         
-        # Import here to avoid circular import
         from .model_details_dialog import ModelDetailsDialog
         import os
         
-        # Check if model file exists
         if not os.path.exists(model['model_path']):
             from tkinter import messagebox
             messagebox.showerror(
@@ -182,27 +167,22 @@ class ModelsTable:
             )
             return
         
-        # Open details dialog
         dialog = ModelDetailsDialog(self.parent, model)
         dialog.show()
     
     def load_models(self):
         """Load models from database and populate table."""
         try:
-            # Clear existing items
             for item in self.tree.get_children():
                 self.tree.delete(item)
             
-            # Get filter
             filter_type = self.filter_var.get()
             
-            # Load from database
             db = ModelDatabase()
             if db.connect():
                 models = db.get_all_models(filter_type if filter_type != "ALL" else None)
                 db.disconnect()
                 
-                # Populate table
                 for model in models:
                     self.tree.insert(
                         "",
@@ -217,7 +197,6 @@ class ModelsTable:
                         )
                     )
                 
-                # Update status
                 count = len(models)
                 self.status_label.config(
                     text=f"Loaded {count} model(s)",

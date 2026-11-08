@@ -65,11 +65,9 @@ class RollerDatabase:
             
             cursor = self.connection.cursor()
             
-            # Get current date and time
             report_date = date.today()
             end_time = datetime.now().time()
             
-            # Prepare data
             roller_type = roller_type = shared_data.get("selected_roller_type", "Small")
             total_inspected = shared_data.get("bf_inspected", 0)
             total_accepted = shared_data.get("bf_ok_rollers", 0)
@@ -81,7 +79,6 @@ class RollerDatabase:
             total_low_head = shared_data.get("bf_down_head", 0)
             others = shared_data.get("bf_others", 0)
 
-            # SQL insert query
             insert_query = """
             INSERT INTO bf_roller_tracking 
             (roller_type, employee_id, report_date, start_time, end_time, 
@@ -124,11 +121,9 @@ class RollerDatabase:
             
             cursor = self.connection.cursor()
             
-            # Get current date and time
             report_date = date.today()
             end_time = datetime.now().time()
             
-            # Prepare data
             roller_type = roller_type = shared_data.get("selected_roller_type", "Small")
             total_inspected = shared_data.get("od_inspected", 0)
             total_accepted = shared_data.get("od_ok_rollers", 0)
@@ -140,7 +135,6 @@ class RollerDatabase:
             total_spherical = shared_data.get("od_spherical_mark", 0)
             others = shared_data.get("od_others", 0)
             
-            # SQL insert query
             insert_query = """
             INSERT INTO od_roller_tracking 
             (roller_type, employee_id, report_date, start_time, end_time, 
@@ -183,7 +177,6 @@ class RollerDatabase:
         return bf_success and od_success
 
 
-# Convenience functions for easy import
 def save_to_database(employee_id, start_time, shared_data, 
                      host=AppConfig.DB_HOST, user=AppConfig.DB_USER, password=AppConfig.DB_PASSWORD, 
                      database=AppConfig.DB_DATABASE):

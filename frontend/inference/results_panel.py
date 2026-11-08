@@ -26,19 +26,15 @@ class ResultsPanel:
         
     def create(self):
         """Create the results panel UI."""
-        # Main container - not expanding to full width
         container = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
         container.pack(anchor=tk.W, padx=5, pady=5)
         
-        # Create three result sections
         self._create_bigface_results(container, 0)
         self._create_od_results(container, 1)
         self._create_overall_results(container, 2)
         
-        # Create roller info section (4th column)
         self._create_roller_info(container, 3)
         
-        # Configure grid weights - optimized width for each column
         for i in range(4):
             container.grid_columnconfigure(i, weight=0, minsize=310)
         
@@ -60,7 +56,6 @@ class ResultsPanel:
         inner_frame = tk.Frame(frame, bg=Colors.PRIMARY_BG)
         inner_frame.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
         
-        # Create result rows
         self._create_result_row(inner_frame, "Inspected :", f"{prefix}_inspected", 0)
         self._create_result_row(inner_frame, "Ok rollers :", f"{prefix}_ok", 1)
         self._create_result_row(inner_frame, "Not OK rollers:", f"{prefix}_not_ok", 2)
@@ -73,24 +68,22 @@ class ResultsPanel:
         row_frame = tk.Frame(parent, bg=Colors.PRIMARY_BG)
         row_frame.pack(fill=tk.X, pady=3)
         
-        # Label
         label = tk.Label(
             row_frame,
             text=label_text,
-            font=Fonts.TEXT_BOLD if not defect_type else Fonts.TEXT,  # Slightly smaller for defects
+            font=Fonts.TEXT_BOLD if not defect_type else Fonts.TEXT,
             fg=Colors.WHITE,
             bg=Colors.PRIMARY_BG,
             anchor="w"
         )
         label.pack(side=tk.LEFT)
         
-        # Value with colored text
         self.result_vars[var_key] = tk.StringVar(value="0" if "percentage" not in var_key else "0.0%")
         value_label = tk.Label(
             row_frame,
             textvariable=self.result_vars[var_key],
-            font=Fonts.TEXT_BOLD if not defect_type else Fonts.TEXT,  # Slightly smaller for defects
-            fg="#00ff00" if "percentage" not in var_key else "#ffff00",  # Green for numbers, Yellow for percentage
+            font=Fonts.TEXT_BOLD if not defect_type else Fonts.TEXT,
+            fg="#00ff00" if "percentage" not in var_key else "#ffff00",
             bg=Colors.PRIMARY_BG,
             anchor="e"
         )
@@ -124,7 +117,6 @@ class ResultsPanel:
         inner_frame = tk.Frame(frame, bg=Colors.PRIMARY_BG)
         inner_frame.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
         
-        # Left column
         left_col = tk.Frame(inner_frame, bg=Colors.PRIMARY_BG)
         left_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         
@@ -132,7 +124,6 @@ class ResultsPanel:
         self._create_info_row(left_col, "Dimple Diameter:", "dimple_diameter", "No Data")
         self._create_info_row(left_col, "Small Diameter :", "small_diameter", "No Data")
         
-        # Right column
         right_col = tk.Frame(inner_frame, bg=Colors.PRIMARY_BG)
         right_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0))
         
@@ -140,8 +131,6 @@ class ResultsPanel:
         self._create_info_row(right_col, "High Head (pixels):", "high_head", "No Data")
         self._create_info_row(right_col, "Down Head (pixels):", "down_head", "No Data")
         
-        # Load initial data from database
-        # Check if there's a previously selected roller type
         self._load_initial_roller_info()
     
     def _create_info_row(self, parent, label_text, var_key, default_value):
@@ -149,28 +138,25 @@ class ResultsPanel:
         row_frame = tk.Frame(parent, bg=Colors.PRIMARY_BG)
         row_frame.pack(fill=tk.X, pady=5)
         
-        # Create inner frame for horizontal layout
         inner_frame = tk.Frame(row_frame, bg=Colors.PRIMARY_BG)
         inner_frame.pack(fill=tk.X)
         
-        # Label (left side)
         label = tk.Label(
             inner_frame,
             text=label_text,
-            font=Fonts.TEXT_BOLD,  # Increased font size to match other results
+            font=Fonts.TEXT_BOLD,
             fg=Colors.WHITE,
             bg=Colors.PRIMARY_BG,
             anchor="w"
         )
         label.pack(side=tk.LEFT)
         
-        # Value (right side)
         self.result_vars[var_key] = tk.StringVar(value=default_value)
         value_label = tk.Label(
             inner_frame,
             textvariable=self.result_vars[var_key],
-            font=Fonts.TEXT_BOLD,  # Increased font size to match other results
-            fg="#00bfff",  # Sky blue color for values
+            font=Fonts.TEXT_BOLD,
+            fg="#00bfff",
             bg=Colors.PRIMARY_BG,
             anchor="e"
         )
@@ -206,15 +192,12 @@ class ResultsPanel:
     def _load_initial_roller_info(self):
         """Load initial roller data from database."""
         try:
-            # First, check if there's a previously selected roller type in app
             previously_selected = getattr(self.app, 'selected_roller_type', None)
             
             if previously_selected and previously_selected != "No Rollers":
-                # Load the previously selected roller's info
                 self.load_roller_from_db(previously_selected)
                 return
             
-            # Fallback: Load first roller from database
             import mysql.connector
             
             connection = mysql.connector.connect(
@@ -293,7 +276,6 @@ class ResultsPanel:
                     down_head=f"{result['down_head_pixels']} pixels"
                 )
             else:
-                # Set to "No Data" if not found
                 self.update_roller_info(
                     outer_diameter="No Data",
                     dimple_diameter="No Data",
@@ -313,7 +295,6 @@ class ResultsPanel:
         Args:
             shared_data: Dictionary containing inspection statistics
         """
-        # Update BF results
         bf_inspected = shared_data.get("bf_inspected", 0)
         bf_ok = shared_data.get("bf_ok_rollers", 0)
         bf_not_ok = shared_data.get("bf_not_ok_rollers", 0)
@@ -324,7 +305,6 @@ class ResultsPanel:
         self.result_vars["bf_not_ok"].set(str(bf_not_ok))
         self.result_vars["bf_percentage"].set(f"{bf_percentage:.1f}%")
         
-        # Update OD results
         od_inspected = shared_data.get("od_inspected", 0)
         od_ok = shared_data.get("od_ok_rollers", 0)
         od_not_ok = shared_data.get("od_not_ok_rollers", 0)
@@ -335,7 +315,6 @@ class ResultsPanel:
         self.result_vars["od_not_ok"].set(str(od_not_ok))
         self.result_vars["od_percentage"].set(f"{od_percentage:.1f}%")
         
-        # Update Overall results
         overall_inspected = bf_inspected
         overall_ok = od_ok
         overall_not_ok = bf_not_ok + od_not_ok

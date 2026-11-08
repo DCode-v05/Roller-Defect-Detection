@@ -26,7 +26,6 @@ class RollerInfoPanel:
         
     def create(self):
         """Create the roller info panel UI."""
-        # Main container
         frame = tk.LabelFrame(
             self.parent,
             text="Roller Info:",
@@ -41,7 +40,6 @@ class RollerInfoPanel:
         inner_frame = tk.Frame(frame, bg=Colors.PRIMARY_BG)
         inner_frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
         
-        # Create info rows with "No Data" as default
         self._create_info_row(inner_frame, "Outer Diameter :", "outer_diameter", "No Data", 0)
         self._create_info_row(inner_frame, "Dimple Diameter:", "dimple_diameter", "No Data", 1)
         self._create_info_row(inner_frame, "Small Diameter :", "small_diameter", "No Data", 2)
@@ -49,7 +47,6 @@ class RollerInfoPanel:
         self._create_info_row(inner_frame, "High Head (pixels):", "high_head", "No Data", 4)
         self._create_info_row(inner_frame, "Down Head (pixels):", "down_head", "No Data", 5)
         
-        # Load initial data from database (from first roller in status panel dropdown)
         self._load_initial_data()
         
         return frame
@@ -57,7 +54,6 @@ class RollerInfoPanel:
     def _load_initial_data(self):
         """Load initial roller data from database."""
         try:
-            # Try to get the selected roller from status panel
             if hasattr(self.app, 'inference_tab') and self.app.inference_tab:
                 if hasattr(self.app.inference_tab, 'status_panel') and self.app.inference_tab.status_panel:
                     status_panel = self.app.inference_tab.status_panel
@@ -67,7 +63,6 @@ class RollerInfoPanel:
                             self.load_roller_from_db(selected_roller)
                             return
             
-            # Fallback: Load first roller from database
             import mysql.connector
             
             connection = mysql.connector.connect(
@@ -143,7 +138,6 @@ class RollerInfoPanel:
                     down_head=f"{result['down_head_pixels']} pixels"
                 )
             else:
-                # Set to "No Data" if not found
                 self.update_info(
                     outer_diameter="No Data",
                     dimple_diameter="No Data",
@@ -161,23 +155,21 @@ class RollerInfoPanel:
         row_frame = tk.Frame(parent, bg=Colors.PRIMARY_BG)
         row_frame.pack(fill=tk.X, pady=3)
         
-        # Label
         label = tk.Label(
             row_frame,
             text=label_text,
-            font=Fonts.TEXT_BOLD,  # Larger bold text
+            font=Fonts.TEXT_BOLD,
             fg=Colors.WHITE,
             bg=Colors.PRIMARY_BG,
             anchor="w"
         )
         label.pack(side=tk.LEFT, padx=(0, 10))
         
-        # Value
         self.info_vars[var_key] = tk.StringVar(value=default_value)
         value_label = tk.Label(
             row_frame,
             textvariable=self.info_vars[var_key],
-            font=Fonts.TEXT_BOLD,  # Larger bold text
+            font=Fonts.TEXT_BOLD,
             fg=Colors.WHITE,
             bg=Colors.PRIMARY_BG,
             anchor="e"

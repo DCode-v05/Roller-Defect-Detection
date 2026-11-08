@@ -7,7 +7,6 @@ DB_CONFIG = {
     "database": "welvision_db"
 }
 
-# SQL CREATE statements
 CREATE_TABLES = {
     "app_settings": """
         CREATE TABLE IF NOT EXISTS app_settings (

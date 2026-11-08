@@ -32,12 +32,11 @@ def configure_gpu_for_background():
     """Configure GPU to maintain performance when app loses focus"""
     if torch.cuda.is_available():
         try:
-            torch.cuda.set_per_process_memory_fraction(0.99)  # Use 99% of GPU
+            torch.cuda.set_per_process_memory_fraction(0.99)
             
             torch.cuda.init()
             torch.cuda.synchronize()
             
-            # Disable memory caching issues
             os.environ['CUDA_LAUNCH_BLOCKING'] = '0'
             
         except Exception as e:
@@ -67,17 +66,14 @@ def get_size_thresholds_for_model(model_name_path, model_type='bf'):
         )
         cursor = connection.cursor()
         
-        # Select the correct table
         table_name = 'bf_threshold_history' if model_type == 'bf' else 'od_threshold_history'
         
-        # Get the Model name from model path
         query_model = f"SELECT model_name FROM {'bf_models' if model_type == 'bf' else 'od_models'} WHERE model_path = %s"
         cursor.execute(query_model, (model_name_path,))
         model_name_result = cursor.fetchone()
         model_name = model_name_result[0] if model_name_result else None
 
         if model_name:
-            # Get the latest size threshold entry for this model
             query = f"""
                 SELECT size_threshold 
                 FROM {table_name} 
@@ -97,12 +93,11 @@ def get_size_thresholds_for_model(model_name_path, model_type='bf'):
                 
                 thresholds = {}
                 
-                # Parse: "rust:1000, dent:5000, damage:3000"
                 pairs = size_threshold_str.split(', ')
                 for pair in pairs:
                     if ':' in pair:
                         defect_name, threshold_str = pair.split(':')
-                        threshold_value = int(threshold_str.strip())  # No % sign for size
+                        threshold_value = int(threshold_str.strip())
                         thresholds[defect_name.strip()] = threshold_value
                 
                 return thresholds
@@ -141,17 +136,14 @@ def get_thresholds_for_model(model_name_path, model_type='bf'):
         )
         cursor = connection.cursor()
         
-        # Select the correct table
         table_name = 'bf_threshold_history' if model_type == 'bf' else 'od_threshold_history'
         
-        # Get the Model name from model path
         query_model = f"SELECT model_name FROM {'bf_models' if model_type == 'bf' else 'od_models'} WHERE model_path = %s"
         cursor.execute(query_model, (model_name_path,))
         model_name_result = cursor.fetchone()
         model_name = model_name_result[0] if model_name_result else None
 
         if model_name:
-            # Get the latest threshold entry for this model
             query = f"""
                 SELECT defect_threshold 
                 FROM {table_name} 
@@ -216,7 +208,6 @@ def get_model_confidence_threshold(model_name_path, model_type='bf'):
         
         table_name = 'bf_threshold_history' if model_type == 'bf' else 'od_threshold_history'
         
-        # Get the Model name from model path
         query_model = f"SELECT model_name FROM {'bf_models' if model_type == 'bf' else 'od_models'} WHERE model_path = %s"
         cursor.execute(query_model, (model_name_path,))
         model_name_result = cursor.fetchone()
@@ -305,14 +296,14 @@ def annotate_detections(image, detections):
         Annotated image (same shape as input).
     """
     COLORS = [
-        (255, 255, 255),  # White
-        (0, 255, 255),    # Cyan
-        (0, 255, 0),      # Bright Green
-        (255, 255, 0),    # Yellow
-        (255, 0, 255),    # Magenta
-        (255, 128, 0),    # Orange
-        (128, 255, 255),  # Light Cyan
-        (255, 204, 229),  # Light Pink
+        (255, 255, 255),
+        (0, 255, 255),
+        (0, 255, 0),
+        (255, 255, 0),
+        (255, 0, 255),
+        (255, 128, 0),
+        (128, 255, 255),
+        (255, 204, 229),
     ]
 
 
@@ -322,22 +313,17 @@ def annotate_detections(image, detections):
     for det in detections:
         label, x1, y1, x2, y2, class_id, conf = det
 
-        # Pick color by class_id
         color = COLORS[class_id % len(COLORS)]
 
-        # Draw bounding box
         cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
 
-        # Prepare label text
         text = f"{label} {conf:.2f}"
         (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)
 
-        # Draw background rectangle for text
         cv2.rectangle(image, (int(x1), int(y1) - text_height - 6),
                              (int(x1) + text_width + 2, int(y1)),
                              color, -1)
 
-        # Put label text
         cv2.putText(image, text, (int(x1), int(y1) - 2),
                     cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), font_thickness)
 
@@ -355,29 +341,26 @@ def filter_detections(detections, confidence_thresholds, size_thresholds):
     filtered = []
     
     for det in detections:
-        label = det[0]      # Detection label
-        x1, y1, x2, y2 = det[1:5]  # Bounding box coordinates
-        conf = det[6]       # Detection confidence
+        label = det[0]
+        x1, y1, x2, y2 = det[1:5]
+        conf = det[6]
         
         
-        # 1. CONFIDENCE FILTER
-        conf_threshold_value = confidence_thresholds.get(label, 50)  # Default 50%
+        conf_threshold_value = confidence_thresholds.get(label, 50)
         conf_threshold = conf_threshold_value / 100.0
         
         if conf < conf_threshold:
-            continue  # Skip if confidence too low
+            continue
 
-        # 2. SIZE FILTER
         bbox_width = x2 - x1
         bbox_height = y2 - y1
         bbox_area = bbox_width * bbox_height
         
-        size_threshold = size_thresholds.get(label, 0)  # Default 0 px² (no filter)
+        size_threshold = size_thresholds.get(label, 0)
         
         if bbox_area < size_threshold:
-            continue  # Skip if bounding box too small
+            continue
         
-        # Passed both filters
         filtered.append(det)
 
     return filtered
@@ -388,7 +371,6 @@ def plc_communication(plc_ip, rack, slot, db_number, shared_data, command_queue)
     """
     set_priority_below_normal()
     
-    # Enable debug logging if frontend has it enabled
     if shared_data.get('debug_enabled', False):
         from frontend.utils.debug_logger import enable_debug
         enable_debug('inference')
@@ -418,11 +400,6 @@ def plc_communication(plc_ip, rack, slot, db_number, shared_data, command_queue)
         while True:
             data = plc_client.read_area(Areas.DB, db_number, 0, 3)
 
-            # shared_data['bigface_presence'] = get_bool(data, byte_index=0, bool_index=1)
-            # shared_data['od_presence'] = get_bool(data, byte_index=1, bool_index=4)
-            # shared_data['bigface'] = get_bool(data, byte_index=0, bool_index=1)
-            # shared_data['od'] = get_bool(data, byte_index=0, bool_index=2)
-            # shared_data['head_classification'] = get_bool(data, byte_index=2, bool_index=2)
 
             shared_data['bigface_presence'] = get_bool(data, 0, 1)
             shared_data['bigface'] = get_bool(data, 0, 2)
@@ -480,7 +457,6 @@ def capture_frames_bigface(shared_frame_bigface, frame_lock_bigface, frame_shape
     """Continuously capture frames from the camera."""
     set_priority_above_normal()
     
-    # Enable debug logging if frontend has it enabled
     if shared_data.get('debug_enabled', False):
         from frontend.utils.debug_logger import enable_debug
         enable_debug('inference')
@@ -511,12 +487,10 @@ def capture_frames_bigface(shared_frame_bigface, frame_lock_bigface, frame_shape
         shared_data["system_error"] = True
 
 
-        
 def process_rollers_bigface(shared_frame_bigface, frame_lock_bigface, roller_queue_bigface, model_bigface_path, proximity_count_bigface, roller_updation_dict, queue_lock, shared_data, frame_shape, shared_annotated_bigface, annotated_frame_lock_bigface):
     """Process frames for YOLO inference."""
     set_priority_high()
     
-    # Enable debug logging if frontend has it enabled
     if shared_data.get('debug_enabled', False):
         from frontend.utils.debug_logger import enable_debug
         enable_debug('inference')
@@ -549,14 +523,13 @@ def process_rollers_bigface(shared_frame_bigface, frame_lock_bigface, roller_que
     class_names = model_bf.names
     roller_class_index = 5
     
-    # Load thresholds from database
     defect_thresholds = get_thresholds_for_model(model_bigface_path, 'bf')
     model_conf_threshold = get_model_confidence_threshold(model_bigface_path, 'bf')
     size_thresholds = get_size_thresholds_for_model(model_bigface_path, 'bf')
 
     warmup_frame = r"Warmup BF.jpg"
     try:
-        for i in range(30):  # Process 30 warmup frames
+        for i in range(30):
             results = model_bf.predict(warmup_frame, device=0, conf=1, verbose=False)
         print("Warmup image YOLO processing for bigface complete.")
         log_info("inference", "BF model warmup completed successfully")
@@ -566,7 +539,7 @@ def process_rollers_bigface(shared_frame_bigface, frame_lock_bigface, roller_que
         print(f"Error during YOLO inference on warmup image: {e}")
 
     try:
-        for i in range(30):  # Process 30 warmup frames
+        for i in range(30):
             results = model_head.predict(warmup_frame, device=0, conf=0.5, verbose=False)
         log_info("inference", "Head classification model warmup completed") 
         print("Head Model Processed on Warmup Frame ")
@@ -597,10 +570,8 @@ def process_rollers_bigface(shared_frame_bigface, frame_lock_bigface, roller_que
     roller_id_counter = 0
     previous_bf_state = False
 
-    # Get selected roller type from shared_data
     selected_roller_type = shared_data.get('selected_roller_type', None)
     
-    # Load head limits from database based on selected roller type
     if selected_roller_type:
         latest_min, latest_max = get_roller_head_limits(selected_roller_type)
     else:
@@ -653,8 +624,8 @@ def process_rollers_bigface(shared_frame_bigface, frame_lock_bigface, roller_que
 
                 results = model_head.predict(frame, device=0, conf=0.7, verbose=False, half=True, agnostic_nms=True)
 
-                boxes = results[0].boxes.xyxy.cpu().numpy()  # shape: [N, 4]
-                classes = results[0].boxes.cls.cpu().numpy()  # class IDs
+                boxes = results[0].boxes.xyxy.cpu().numpy()
+                classes = results[0].boxes.cls.cpu().numpy()
 
                 x1r, y1r, x2r, y2r = 0, 0, 0, 0
                 x1d, y1d, x2d, y2d = 0, 0, 0, 0 
@@ -712,9 +683,6 @@ def process_rollers_bigface(shared_frame_bigface, frame_lock_bigface, roller_que
                     np_frame = np.frombuffer(shared_frame_bigface.get_obj(), dtype=np.uint8).reshape(frame_shape)
                     frame = np_frame.copy()
 
-                # proximity_count_bigface.value += 1
-                # pc = proximity_count_bigface.value
-
 
                 results = model_bf.predict(frame, device=0, conf=model_conf_threshold, verbose=False, half=True, agnostic_nms=True)
 
@@ -731,12 +699,11 @@ def process_rollers_bigface(shared_frame_bigface, frame_lock_bigface, roller_que
                         detections.append((label, int(x1), int(y1), int(x2), int(y2), cls, float(conf)))
 
                 filtered_detections = filter_detections(detections, defect_thresholds, size_thresholds)
-                detections = sorted(filtered_detections, key=lambda x: x[1])  # Sort by x-coordinate
+                detections = sorted(filtered_detections, key=lambda x: x[1])
                 annotated_frame = frame.copy()
                 annotated_frame = annotate_detections(annotated_frame, filtered_detections)
             
                 
-                # Check for roller and defect detections
                 has_roller_detection = any(detection[0] == "roller" for detection in detections)
                 has_defect_detection = any(detection[0] != "roller" for detection in detections)
 
@@ -832,13 +799,10 @@ def process_rollers_bigface(shared_frame_bigface, frame_lock_bigface, roller_que
         shared_data["system_error"] = True
         
 
-
-
 def handle_slot_control_bigface(roller_queue_bigface,shared_data,command_queue):
     """Control slot mechanism based on second proximity sensor."""
     set_priority_below_normal()
     
-    # Enable debug logging if frontend has it enabled
     if shared_data.get('debug_enabled', False):
         from frontend.utils.debug_logger import enable_debug
         enable_debug('inference')
@@ -865,7 +829,6 @@ def capture_frames_od(shared_frame_od, frame_lock_od, frame_shape, shared_data):
     """Continuously capture frames from the camera."""
     set_priority_above_normal()
     
-    # Enable debug logging if frontend has it enabled
     if shared_data.get('debug_enabled', False):
         from frontend.utils.debug_logger import enable_debug
         enable_debug('inference')
@@ -888,7 +851,7 @@ def capture_frames_od(shared_frame_od, frame_lock_od, frame_shape, shared_data):
                     np_frame = np.frombuffer(shared_frame_od.get_obj(), dtype=np.uint8).reshape(frame_shape)
                     np.copyto(np_frame, frame)
             else:
-                log_error("inference", "Failed to capture frame from OD camera")  # ADD THIS
+                log_error("inference", "Failed to capture frame from OD camera")
                 print("Failed to capture frame.")
                 shared_data["system_error"] = True
                 time.sleep(0.01)
@@ -900,7 +863,6 @@ def process_frames_od(shared_frame_od, frame_lock_od, roller_queue_od, model_od_
     """Process frames for YOLO inference and track roller defects with pulse debounce & proper exit handling."""
     set_priority_high()
     
-    # Enable debug logging if frontend has it enabled
     if shared_data.get('debug_enabled', False):
         from frontend.utils.debug_logger import enable_debug
         enable_debug('inference')
@@ -908,7 +870,7 @@ def process_frames_od(shared_frame_od, frame_lock_od, roller_queue_od, model_od_
     detected_folder = f"C:\\Users\\{os.getlogin()}\\Desktop\\Inference\\OD\\Defect"
     os.makedirs(detected_folder, exist_ok=True)
 
-    def point_inside(rectangle, list_of_all_rollers , roller_number): #COORDINATES, NO OF ROLLERS IN FRAME, TOTAL ROLLERS
+    def point_inside(rectangle, list_of_all_rollers , roller_number):
         
         length = len(list_of_all_rollers)
 
@@ -939,7 +901,7 @@ def process_frames_od(shared_frame_od, frame_lock_od, roller_queue_od, model_od_
 
     warmup_frame = r"Warmup OD.jpg"
     try:
-        for i in range(30):  # Process 30 warmup frames
+        for i in range(30):
             od_model.predict(warmup_frame, device=0, conf=0.2, verbose=False)
         print("Warmup image YOLO processing for od complete.")
         log_info("inference", "Warmup image YOLO processing for od complete.")
@@ -969,7 +931,6 @@ def process_frames_od(shared_frame_od, frame_lock_od, roller_queue_od, model_od_
         allow_all_folder_od = f"C:\\Users\\{os.getlogin()}\\Desktop\\All Frames\\OD\\All_OD"
         os.makedirs(allow_all_folder_od, exist_ok=True)
 
-    # Load thresholds from database
     defect_thresholds = get_thresholds_for_model(model_od_path, 'od')
     model_conf_threshold = get_model_confidence_threshold(model_od_path, 'od')
     size_thresholds = get_size_thresholds_for_model(model_od_path, 'od')
@@ -1009,12 +970,11 @@ def process_frames_od(shared_frame_od, frame_lock_od, roller_queue_od, model_od_
                             detections.append((label, x1, y1, x2, y2, class_id, conf))
 
                 filtered_detections = filter_detections(detections, defect_thresholds, size_thresholds)
-                detections = sorted(filtered_detections, key=lambda x: x[1])  # Sort by x-coordinate
+                detections = sorted(filtered_detections, key=lambda x: x[1])
                 annotated_frame = np_frame.copy()
                 annotated_frame = annotate_detections(annotated_frame, filtered_detections)
             
 
-                # Check for roller and defect detections
                 has_roller_detection = any(detection[0] == "roller" for detection in detections)
                 has_defect_detection = any(detection[0] != "roller" for detection in detections)
 
@@ -1047,7 +1007,7 @@ def process_frames_od(shared_frame_od, frame_lock_od, roller_queue_od, model_od_
                         defect_name = "No Defect" if not defect_detected else od_model.names[detection[5]]
 
                         if roller_id in roller_dict:
-                            roller_dict[roller_id]['defect'] |= defect_detected  # OR logic
+                            roller_dict[roller_id]['defect'] |= defect_detected
                             roller_dict[roller_id]['defect_names'].append(defect_name)
                         else:
                             roller_dict[roller_id] = {'defect': defect_detected, 'defect_names': [defect_name]}
@@ -1109,7 +1069,6 @@ def handle_slot_control_od(roller_queue_od, shared_data, command_queue):
     """Control slot mechanism based on second proximity sensor."""
     set_priority_below_normal()
     
-    # Enable debug logging if frontend has it enabled
     if shared_data.get('debug_enabled', False):
         from frontend.utils.debug_logger import enable_debug
         enable_debug('inference')

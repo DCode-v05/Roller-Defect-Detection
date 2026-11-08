@@ -29,7 +29,6 @@ class SettingsHistory:
         self.app = app_instance
         self.db = InfoDatabase()
         
-        # UI elements
         self.tree = None
         self.from_date_entry = None
         self.to_date_entry = None
@@ -38,7 +37,6 @@ class SettingsHistory:
     
     def create(self):
         """Create the settings history UI."""
-        # Main frame
         main_frame = tk.LabelFrame(
             self.parent,
             text="Settings History",
@@ -50,11 +48,9 @@ class SettingsHistory:
         )
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Filter frame
         filter_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         filter_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        # Filter type dropdown
         tk.Label(
             filter_frame,
             text="Filter:",
@@ -74,7 +70,6 @@ class SettingsHistory:
         )
         filter_dropdown.pack(side=tk.LEFT, padx=5)
         
-        # Date range filters
         tk.Label(
             filter_frame,
             text="From:",
@@ -113,12 +108,11 @@ class SettingsHistory:
         )
         self.to_date_entry.pack(side=tk.LEFT, padx=5)
         
-        # Load button
         tk.Button(
             filter_frame,
             text="🔍 Load History",
             font=Fonts.TEXT_BOLD,
-            bg="#17A2B8",  # Cyan
+            bg="#17A2B8",
             fg=Colors.WHITE,
             activebackground="#117a8b",
             activeforeground=Colors.WHITE,
@@ -127,7 +121,6 @@ class SettingsHistory:
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=5)
         
-        # Buttons frame
         buttons_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         buttons_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         
@@ -135,7 +128,7 @@ class SettingsHistory:
             buttons_frame,
             text="�️ View Details",
             font=Fonts.TEXT_BOLD,
-            bg="#6F42C1",  # Purple
+            bg="#6F42C1",
             fg=Colors.WHITE,
             activebackground="#59359a",
             activeforeground=Colors.WHITE,
@@ -148,7 +141,7 @@ class SettingsHistory:
             buttons_frame,
             text="📊 Export to Excel",
             font=Fonts.TEXT_BOLD,
-            bg="#28A745",  # Green
+            bg="#28A745",
             fg=Colors.WHITE,
             activebackground="#218838",
             activeforeground=Colors.WHITE,
@@ -157,14 +150,13 @@ class SettingsHistory:
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=5)
         
-        # Clear History button - Only for Admin and Supervisor
         user_role = getattr(self.app, 'current_role', 'Operator')
-        if Permissions.can_manage_users(user_role):  # Admin or Supervisor
+        if Permissions.can_manage_users(user_role):
             tk.Button(
                 buttons_frame,
                 text="🗑️ Clear History",
                 font=Fonts.TEXT_BOLD,
-                bg="#DC3545",  # Red
+                bg="#DC3545",
                 fg=Colors.WHITE,
                 activebackground="#c82333",
                 activeforeground=Colors.WHITE,
@@ -173,15 +165,12 @@ class SettingsHistory:
                 cursor="hand2"
             ).pack(side=tk.LEFT, padx=5)
         
-        # Treeview frame
         tree_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         
-        # Scrollbars
         vsb = ttk.Scrollbar(tree_frame, orient="vertical")
         hsb = ttk.Scrollbar(tree_frame, orient="horizontal")
         
-        # Treeview
         self.tree = ttk.Treeview(
             tree_frame,
             columns=("id", "type", "model_name", "employee_id", "timestamp", "model_threshold"),
@@ -194,7 +183,6 @@ class SettingsHistory:
         vsb.config(command=self.tree.yview)
         hsb.config(command=self.tree.xview)
         
-        # Define columns
         self.tree.heading("id", text="ID")
         self.tree.heading("type", text="Type")
         self.tree.heading("model_name", text="Model Name")
@@ -209,7 +197,6 @@ class SettingsHistory:
         self.tree.column("timestamp", width=180, anchor=tk.CENTER)
         self.tree.column("model_threshold", width=120, anchor=tk.CENTER)
         
-        # Pack widgets
         self.tree.grid(row=0, column=0, sticky="nsew")
         vsb.grid(row=0, column=1, sticky="ns")
         hsb.grid(row=1, column=0, sticky="ew")
@@ -217,7 +204,6 @@ class SettingsHistory:
         tree_frame.grid_rowconfigure(0, weight=1)
         tree_frame.grid_columnconfigure(0, weight=1)
         
-        # Style treeview
         style = ttk.Style()
         style.theme_use("default")
         style.configure(
@@ -230,12 +216,10 @@ class SettingsHistory:
         style.configure("Treeview.Heading", font=Fonts.TEXT_BOLD)
         style.map("Treeview", background=[("selected", "#007BFF")])
         
-        # Load initial data
         self.load_history()
     
     def load_history(self):
         """Load threshold settings history from database based on filters."""
-        # Clear existing data
         for item in self.tree.get_children():
             self.tree.delete(item)
         
@@ -246,7 +230,6 @@ class SettingsHistory:
             from_date = self.from_date_entry.get_date()
             to_date = self.to_date_entry.get_date()
             
-            # Date validation: from_date <= to_date <= today
             today = date.today()
             
             if from_date > to_date:
@@ -273,18 +256,15 @@ class SettingsHistory:
                 )
                 return
             
-            # Get history from database
             history = self.db.get_threshold_history(filter_type, from_date, to_date)
             
             if not history:
-                # Insert placeholder
                 self.tree.insert(
                     "",
                     tk.END,
                     values=("", "No History", "No threshold changes recorded", "", "", "")
                 )
             else:
-                # Insert history records
                 for record in history:
                     record_id, record_type, model_name, employee_id, timestamp, defect_threshold, size_threshold, model_threshold = record
                     
@@ -301,7 +281,6 @@ class SettingsHistory:
                         )
                     )
                     
-                    # Store full record for details view and export
                     self.current_data.append({
                         'id': record_id,
                         'type': record_type,
@@ -327,7 +306,6 @@ class SettingsHistory:
             messagebox.showwarning("No Selection", "Please select a history record to view details.")
             return
         
-        # Get selected item values
         item = self.tree.item(selection[0])
         values = item['values']
         
@@ -337,7 +315,6 @@ class SettingsHistory:
         
         record_id = values[0]
         
-        # Find full record in current_data
         record = None
         for data in self.current_data:
             if data['id'] == record_id:
@@ -348,17 +325,14 @@ class SettingsHistory:
             messagebox.showerror("Error", "Record details not found.")
             return
         
-        # Create details window
         details_window = tk.Toplevel(self.parent)
         details_window.title(f"Threshold History Details - ID: {record_id}")
         details_window.geometry("700x500")
         details_window.configure(bg=Colors.PRIMARY_BG)
         
-        # Center window
         details_window.transient(self.parent)
         details_window.grab_set()
         
-        # Title
         tk.Label(
             details_window,
             text=f"Threshold Configuration Details",
@@ -367,11 +341,9 @@ class SettingsHistory:
             bg=Colors.PRIMARY_BG
         ).pack(pady=10)
         
-        # Details frame
         details_frame = tk.Frame(details_window, bg=Colors.PRIMARY_BG)
         details_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
         
-        # Basic info
         info_text = f"""ID: {record['id']}
 Type: {record['type']}
 Model Name: {record['model_name']}
@@ -382,16 +354,13 @@ Model Threshold: {record['model_threshold']}
 Defect Confidence Thresholds:
 """
         
-        # Parse defect thresholds
         defect_str = record['defect_threshold']
         defect_lines = defect_str.replace(', ', '\n  ')
         info_text += f"  {defect_lines}"
         
-        # Parse size thresholds (measured in bounding box area)
         info_text += "\n\nDefect Size Thresholds (Bounding Box Area):\n"
         size_str = record.get('size_threshold', '')
         if size_str:
-            # Replace format: "rust:1000, dent:5000" -> "rust:1000 px², dent:5000 px²"
             size_pairs = size_str.split(', ')
             formatted_sizes = []
             for pair in size_pairs:
@@ -403,7 +372,6 @@ Defect Confidence Thresholds:
         else:
             info_text += "  Not configured"
         
-        # Text widget with scrollbar
         text_frame = tk.Frame(details_frame, bg=Colors.PRIMARY_BG)
         text_frame.pack(fill=tk.BOTH, expand=True)
         
@@ -424,7 +392,6 @@ Defect Confidence Thresholds:
         text_widget.insert(tk.END, info_text)
         text_widget.config(state=tk.DISABLED)
         
-        # Close button
         tk.Button(
             details_window,
             text="Close",
@@ -454,7 +421,6 @@ Defect Confidence Thresholds:
             from_date_obj = self.from_date_entry.get_date()
             to_date_obj = self.to_date_entry.get_date()
             
-            # Date validation before export
             today = date.today()
             
             if from_date_obj > to_date_obj:
@@ -481,16 +447,13 @@ Defect Confidence Thresholds:
             from_date = from_date_obj.strftime("%Y-%m-%d")
             to_date = to_date_obj.strftime("%Y-%m-%d")
             
-            # Create directory path
             username = os.getlogin()
             base_path = f"C:\\Users\\{username}\\Desktop\\Threshold Settings\\{filter_type}"
             os.makedirs(base_path, exist_ok=True)
             
-            # Create filename
             filename = f"{from_date}_{to_date}.xlsx"
             filepath = os.path.join(base_path, filename)
             
-            # Prepare data for export
             export_data = []
             for record in self.current_data:
                 export_data.append({
@@ -504,14 +467,11 @@ Defect Confidence Thresholds:
                     'Defect Size Thresholds': record.get('size_threshold', 'Not configured')
                 })
             
-            # Convert to DataFrame
             df = pd.DataFrame(export_data)
             
-            # Export to Excel
             with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
                 df.to_excel(writer, index=False, sheet_name='Threshold History')
                 
-                # Auto-adjust column widths
                 worksheet = writer.sheets['Threshold History']
                 for idx, col in enumerate(df.columns):
                     max_length = max(
@@ -520,7 +480,6 @@ Defect Confidence Thresholds:
                     )
                     worksheet.column_dimensions[chr(65 + idx)].width = min(max_length + 2, 50)
             
-            # Create custom dialog with "Open Location" option
             result = messagebox.askquestion(
                 "Export Success",
                 f"Threshold history exported successfully!\n\n"
@@ -530,7 +489,6 @@ Defect Confidence Thresholds:
             )
             
             if result == 'yes':
-                # Open the folder containing the exported file
                 subprocess.run(['explorer', base_path])
         
         except Exception as e:
@@ -541,9 +499,8 @@ Defect Confidence Thresholds:
     
     def clear_history(self):
         """Clear threshold history for selected filter type (Admin and Super Admin only)."""
-        # Double-check permission
         user_role = getattr(self.app, 'current_role', 'Operator')
-        if not Permissions.can_manage_users(user_role):  # Admin and Super Admin
+        if not Permissions.can_manage_users(user_role):
             messagebox.showerror(
                 "Permission Denied",
                 "Only Admin and Super Admin can clear threshold history."

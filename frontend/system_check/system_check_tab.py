@@ -27,14 +27,12 @@ class SystemCheckTab:
         self.parent = parent
         self.app = app_instance
         
-        # Components
         self.control_settings = None
         self.system_status = None
         self.processing_counters = None
         self.system_control = None
         self.plc_controller = None
         
-        # Initialize state from app if it exists (for persistence across tab switches)
         if hasattr(self.app, 'system_check_running'):
             self.system_running = self.app.system_check_running
         else:
@@ -52,14 +50,11 @@ class SystemCheckTab:
         try:
             log_info("system_check", "Setting up System Check tab")
             
-            # Save the current running state before rebuilding UI
             was_running = self.system_running
             
-            # Main container with dark blue background
             main_container = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
             main_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
             
-            # Title Section
             title_label = tk.Label(
                 main_container,
                 text="System Check - PLC Control Interface",
@@ -69,7 +64,6 @@ class SystemCheckTab:
             )
             title_label.pack(pady=(0, 2))
             
-            # Subtitle
             subtitle_label = tk.Label(
                 main_container,
                 text="Professional interface for BigFace and OD roller inspection control",
@@ -79,44 +73,32 @@ class SystemCheckTab:
             )
             subtitle_label.pack(pady=(0, 10))
             
-            # Control Settings Section - preserve disabled state if system was running
-            # Use the SystemCheckTab's own flag, not the old ControlSettings instance
             controls_disabled = self.controls_are_disabled
             
             self.control_settings = ControlSettings(main_container, self.app)
-            self.control_settings.controls_disabled = controls_disabled  # Set before create()
+            self.control_settings.controls_disabled = controls_disabled
             self.control_settings.create()
             
-            # Initialize PLC Controller only if not already initialized
             if self.plc_controller is None:
                 self.plc_controller = PLCController(self.app, self.control_settings)
             else:
-                # Update the control_settings reference in existing PLC controller
                 self.plc_controller.control_settings = self.control_settings
             
-            # System Status Section
             self.system_status = SystemStatus(main_container, self.app, self)
             self.system_status.create()
             
-            # Processing Counters Section
             self.processing_counters = ProcessingCounters(main_container, self.app)
             self.processing_counters.create()
             
-            # System Control Section
             self.system_control = SystemControl(main_container, self.app, self)
             self.system_control.create()
             
-            # Restore button states if system is running
             if was_running:
-                # Button states are already handled in create(), just update colors
                 self.system_control.enable_stop()
-                # Control settings are already disabled via controls_disabled flag
                 self._block_navigation_buttons()
-                # Also restore app closing block
                 if hasattr(self.app, 'protocol'):
                     self.app.protocol("WM_DELETE_WINDOW", self.system_control._block_closing)
             
-            # Start monitoring updates
             self._monitor_updates()
             
             log_info("system_check", "System Check tab setup completed successfully")
@@ -127,19 +109,16 @@ class SystemCheckTab:
     def _monitor_updates(self):
         """Monitor shared_data for real-time updates."""
         if hasattr(self.app, 'shared_data') and self.app.shared_data:
-            # Update system status
             if self.system_status:
                 self.system_status.update_status(self.app.shared_data, self.system_running)
             
-            # Update processing counters
             if self.processing_counters:
                 self.processing_counters.update_counters(self.app.shared_data)
         
-        # Continue monitoring every 100ms for faster sensor status updates
         try:
             self.parent.after(100, self._monitor_updates)
         except:
-            pass  # Tab might be destroyed
+            pass
     
     def start_system(self):
         """Start the system check control."""
@@ -147,32 +126,25 @@ class SystemCheckTab:
             print("⚠ System Check: Already running")
             return False
         
-        # Check PLC connection before starting
         if not self._check_plc_connection():
             return False
         
-        # Start PLC monitoring
         if self.plc_controller.start_monitoring():
             self.system_running = True
-            self.app.system_check_running = True  # Store in app for persistence
+            self.app.system_check_running = True
             
-            # Block Inference and Settings navigation buttons
             self._block_navigation_buttons()
             
-            # Block logout button
             self._block_logout_button()
             
-            # Block Control Settings pattern selection
             if self.control_settings:
                 self.control_settings.disable_controls()
                 self.controls_are_disabled = True
-                self.app.system_check_controls_disabled = True  # Store in app for persistence
+                self.app.system_check_controls_disabled = True
             
-            # Update button states
             if self.system_control:
                 self.system_control.enable_stop()
             
-            # Start monitoring for system errors
             if hasattr(self.app, '_monitor_system_error'):
                 self.app._monitor_system_error()
             
@@ -187,24 +159,19 @@ class SystemCheckTab:
             print("⚠ System Check: Not running")
             return
         
-        # Stop PLC monitoring
         self.plc_controller.stop_monitoring()
         self.system_running = False
-        self.app.system_check_running = False  # Store in app for persistence
+        self.app.system_check_running = False
         
-        # Unblock Inference and Settings navigation buttons
         self._unblock_navigation_buttons()
         
-        # Unblock logout button
         self._unblock_logout_button()
         
-        # Unblock Control Settings pattern selection
         if self.control_settings:
             self.control_settings.enable_controls()
             self.controls_are_disabled = False
-            self.app.system_check_controls_disabled = False  # Store in app for persistence
+            self.app.system_check_controls_disabled = False
         
-        # Update button states
         if self.system_control:
             self.system_control.enable_start()
         
@@ -219,19 +186,17 @@ class SystemCheckTab:
         if hasattr(self.app, 'navbar_manager') and self.app.navbar_manager:
             navbar = self.app.navbar_manager
             
-            # Block Inference button
             if 'inference' in navbar.buttons:
                 navbar.buttons['inference'].button.config(
                     state=tk.DISABLED,
-                    bg="#DC3545",  # Red color
+                    bg="#DC3545",
                     disabledforeground="#FFFFFF"
                 )
             
-            # Block Settings button
             if 'settings' in navbar.buttons:
                 navbar.buttons['settings'].button.config(
                     state=tk.DISABLED,
-                    bg="#DC3545",  # Red color
+                    bg="#DC3545",
                     disabledforeground="#FFFFFF"
                 )
     
@@ -240,7 +205,6 @@ class SystemCheckTab:
         if hasattr(self.app, 'navbar_manager') and self.app.navbar_manager:
             navbar = self.app.navbar_manager
             
-            # Unblock Inference button
             if 'inference' in navbar.buttons:
                 nav_button = navbar.buttons['inference']
                 nav_button.button.config(
@@ -248,7 +212,6 @@ class SystemCheckTab:
                     bg=nav_button.inactive_bg
                 )
             
-            # Unblock Settings button
             if 'settings' in navbar.buttons:
                 nav_button = navbar.buttons['settings']
                 nav_button.button.config(
@@ -261,8 +224,8 @@ class SystemCheckTab:
         if hasattr(self.app, 'logout_button') and self.app.logout_button:
             self.app.logout_button.config(
                 state=tk.DISABLED,
-                bg="#6c757d",  # Grey
-                fg="#FFFFFF"  # White text
+                bg="#6c757d",
+                fg="#FFFFFF"
             )
     
     def _unblock_logout_button(self):
@@ -271,8 +234,8 @@ class SystemCheckTab:
             from ..utils.styles import Colors
             self.app.logout_button.config(
                 state=tk.NORMAL,
-                bg=Colors.DANGER,  # Red
-                fg="#FFFFFF"  # White text
+                bg=Colors.DANGER,
+                fg="#FFFFFF"
             )
     
     def _check_plc_connection(self):

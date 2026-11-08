@@ -38,13 +38,10 @@ def create_header(parent, title, user_email, user_role, logout_callback, app_ins
     Returns:
         Tuple of (header_frame, logout_button, debug_checkbutton)
     """
-    # Fixed height header frame to ensure consistency across all roles
-    # Increased height to accommodate Logout button + Debug + Allow All Images checkboxes
     header_frame = tk.Frame(parent, bg=Colors.PRIMARY_BG, height=85)
     header_frame.pack(fill=tk.X)
-    header_frame.pack_propagate(False)  # Prevent frame from shrinking/expanding
+    header_frame.pack_propagate(False)
     
-    # Logo in header
     logo_label = tk.Label(
         header_frame, 
         text=title, 
@@ -54,11 +51,9 @@ def create_header(parent, title, user_email, user_role, logout_callback, app_ins
     )
     logo_label.pack(side=tk.LEFT, padx=20, pady=5)
     
-    # User info and logout on the right
     right_frame = tk.Frame(header_frame, bg=Colors.PRIMARY_BG)
     right_frame.pack(side=tk.RIGHT, padx=10, pady=5)
     
-    # User info label
     user_label = tk.Label(
         right_frame, 
         text=f"{user_role}: {user_email}",
@@ -68,11 +63,9 @@ def create_header(parent, title, user_email, user_role, logout_callback, app_ins
     )
     user_label.pack(side=tk.LEFT, padx=(0, 10))
     
-    # Debug checkbox (below logout button - using a container)
     button_container = tk.Frame(right_frame, bg=Colors.PRIMARY_BG)
     button_container.pack(side=tk.LEFT)
     
-    # Logout button with styling
     logout_button = tk.Button(
         button_container, 
         text="Logout", 
@@ -82,13 +75,12 @@ def create_header(parent, title, user_email, user_role, logout_callback, app_ins
         relief=tk.RAISED,
         bd=2,
         padx=15,
-        pady=3,  # Reduced padding to save vertical space
+        pady=3,
         cursor="hand2",
         command=logout_callback
     )
     logout_button.pack()
     
-    # Debug checkbutton variable and widget
     debug_var = tk.BooleanVar(value=False)
     
     def on_debug_toggle():
@@ -96,35 +88,28 @@ def create_header(parent, title, user_email, user_role, logout_callback, app_ins
         if app_instance and hasattr(app_instance, 'current_tab_id'):
             page_name = app_instance.current_tab_id
             
-            # Check if processes are running and block debug toggle
             process_running = False
             process_name = ""
             
             if page_name == 'inference':
-                # Check if inspection is running
                 if hasattr(app_instance, 'inspection_running') and app_instance.inspection_running:
                     process_running = True
                     process_name = "Inspection"
             elif page_name == 'settings':
-                # Check if preview is active
                 if hasattr(app_instance, 'tabs') and 'settings' in app_instance.tabs:
                     settings_tab = app_instance.tabs['settings']
                     if hasattr(settings_tab, 'preview_active') and settings_tab.preview_active:
                         process_running = True
                         process_name = "Preview"
             elif page_name == 'system_check':
-                # Check if system check is running
                 if hasattr(app_instance, 'system_check_running') and app_instance.system_check_running:
                     process_running = True
                     process_name = "System Check"
             
-            # If process is running, revert the checkbox and show warning
             if process_running:
-                # Revert checkbox to current state
                 current_state = debug_logger.is_enabled(page_name)
                 debug_var.set(current_state)
                 
-                # Show warning message
                 from tkinter import messagebox
                 messagebox.showwarning(
                     "Debug Mode Blocked",
@@ -134,20 +119,17 @@ def create_header(parent, title, user_email, user_role, logout_callback, app_ins
                 print(f"⚠️ Debug toggle blocked: {process_name} is running")
                 return
             
-            # Process is not running - allow toggle
             is_enabled = debug_logger.toggle_page(page_name)
             debug_var.set(is_enabled)
             
-            # Update shared_data for backend processes (inference page only)
             if page_name == 'inference' and hasattr(app_instance, 'shared_data'):
                 app_instance.shared_data["debug_enabled"] = is_enabled
             
-            # Visual feedback
             if is_enabled:
-                debug_checkbutton.config(fg="#00ff00")  # Green when enabled
+                debug_checkbutton.config(fg="#00ff00")
                 print(f"✅ Debug mode ENABLED for {page_name}")
             else:
-                debug_checkbutton.config(fg=Colors.WHITE)  # White when disabled
+                debug_checkbutton.config(fg=Colors.WHITE)
                 print(f"❌ Debug mode DISABLED for {page_name}")
     
     debug_checkbutton = tk.Checkbutton(
@@ -162,12 +144,11 @@ def create_header(parent, title, user_email, user_role, logout_callback, app_ins
         activeforeground=Colors.WHITE,
         cursor="hand2",
         command=on_debug_toggle,
-        anchor="w",  # Left align text for consistent width
-        wraplength=150  # Wrap text if needed
+        anchor="w",
+        wraplength=150
     )
-    debug_checkbutton.pack(pady=(1, 0), fill=tk.X)  # Reduced padding
+    debug_checkbutton.pack(pady=(1, 0), fill=tk.X)
     
-    # Allow All Images checkbutton (below Debug, only for Super Admin)
     allow_images_checkbutton = None
     if app_instance:
         from .permissions import Permissions
@@ -196,16 +177,14 @@ def create_header(parent, title, user_email, user_role, logout_callback, app_ins
                 activeforeground=Colors.WHITE,
                 cursor="hand2",
                 command=on_allow_images_toggle,
-                anchor="w",  # Left align text for consistent width
-                wraplength=150  # Wrap text if needed to prevent cutoff
+                anchor="w",
+                wraplength=150
             )
-            allow_images_checkbutton.pack(pady=(1, 0), fill=tk.X)  # Reduced padding
+            allow_images_checkbutton.pack(pady=(1, 0), fill=tk.X)
             
-            # Store in app instance
             app_instance.allow_images_var = allow_images_var
             app_instance.allow_images_checkbutton = allow_images_checkbutton
     
-    # Store debug var in app instance for page-specific toggling
     if app_instance:
         if not hasattr(app_instance, 'debug_vars'):
             app_instance.debug_vars = {}

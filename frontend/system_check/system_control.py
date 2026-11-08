@@ -24,7 +24,6 @@ class SystemControl:
         self.app = app_instance
         self.system_check_tab = system_check_tab
         
-        # Button references
         self.start_button = None
         self.stop_button = None
         self.reset_button = None
@@ -32,7 +31,6 @@ class SystemControl:
     
     def create(self):
         """Create the system control UI."""
-        # Main frame
         control_frame = tk.LabelFrame(
             self.parent,
             text="System Control",
@@ -44,22 +42,19 @@ class SystemControl:
         )
         control_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        # Inner container
         inner_frame = tk.Frame(control_frame, bg=Colors.PRIMARY_BG)
         inner_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
         
-        # Buttons container (centered)
         buttons_frame = tk.Frame(inner_frame, bg=Colors.PRIMARY_BG)
         buttons_frame.pack(anchor="center")
         
-        # Start System button - Green with White text
         self.start_button = tk.Button(
             buttons_frame,
             text="START SYSTEM",
             font=("Arial", 10, "bold"),
-            bg="#28A745",  # Green
-            fg="#FFFFFF",  # White
-            disabledforeground="#FFFFFF",  # White text even when disabled
+            bg="#28A745",
+            fg="#FFFFFF",
+            disabledforeground="#FFFFFF",
             width=14,
             height=1,
             relief=tk.RAISED,
@@ -68,14 +63,13 @@ class SystemControl:
         )
         self.start_button.pack(side=tk.LEFT, padx=8)
         
-        # Stop System button - Grey with White text
         self.stop_button = tk.Button(
             buttons_frame,
             text="STOP SYSTEM",
             font=("Arial", 10, "bold"),
-            bg="#6C757D",  # Grey
-            fg="#FFFFFF",  # White
-            disabledforeground="#FFFFFF",  # White text even when disabled
+            bg="#6C757D",
+            fg="#FFFFFF",
+            disabledforeground="#FFFFFF",
             width=14,
             height=1,
             relief=tk.RAISED,
@@ -85,43 +79,40 @@ class SystemControl:
         )
         self.stop_button.pack(side=tk.LEFT, padx=8)
         
-        # Reset Counters button - Grey when disabled initially, Red when enabled (after system stopped)
         self.reset_button = tk.Button(
             buttons_frame,
             text="RESET COUNTERS",
             font=("Arial", 10, "bold"),
-            bg="#6C757D",  # Grey when disabled initially
+            bg="#6C757D",
             fg=Colors.WHITE,
-            disabledforeground="#FFFFFF",  # White text even when disabled
+            disabledforeground="#FFFFFF",
             width=14,
             height=1,
             relief=tk.RAISED,
             bd=2,
-            state=tk.DISABLED,  # Disabled by default - enabled after system stops
+            state=tk.DISABLED,
             command=self._reset_counters
         )
         self.reset_button.pack(side=tk.LEFT, padx=8)
         
-        # Emergency Stop button - Grey when disabled (system stopped), Red when enabled (system running)
         self.emergency_button = tk.Button(
             buttons_frame,
             text="EMERGENCY STOP",
             font=("Arial", 10, "bold"),
-            bg="#6C757D",  # Grey when disabled
+            bg="#6C757D",
             fg=Colors.WHITE,
-            disabledforeground="#FFFFFF",  # White text even when disabled
+            disabledforeground="#FFFFFF",
             width=14,
             height=1,
             relief=tk.RAISED,
             bd=2,
-            state=tk.DISABLED,  # Disabled by default
+            state=tk.DISABLED,
             command=self._emergency_stop
         )
         self.emergency_button.pack(side=tk.LEFT, padx=8)
     
     def _start_system(self):
         """Start the system check control."""
-        # Show confirmation dialog
         confirm = messagebox.askyesno(
             "Confirm Start System",
             "Are you sure you want to start the System Check?\n\n"
@@ -137,13 +128,11 @@ class SystemControl:
             return
         
         if self.system_check_tab.start_system():
-            # Update button states and colors
-            self.start_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled
-            self.stop_button.config(state=tk.NORMAL, bg="#DC3545")  # Red when enabled
-            self.reset_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled
-            self.emergency_button.config(state=tk.NORMAL, bg="#FF0000")  # Red when enabled
+            self.start_button.config(state=tk.DISABLED, bg="#6C757D")
+            self.stop_button.config(state=tk.NORMAL, bg="#DC3545")
+            self.reset_button.config(state=tk.DISABLED, bg="#6C757D")
+            self.emergency_button.config(state=tk.NORMAL, bg="#FF0000")
             
-            # Block app closing
             if hasattr(self.app, 'protocol'):
                 self.app.protocol("WM_DELETE_WINDOW", self._block_closing)
             
@@ -158,31 +147,24 @@ class SystemControl:
             "Are you sure you want to stop the System Check control?"
         )
         if not response:
-            return  # User cancelled - system continues, Reset stays disabled
+            return
         
-        # User confirmed - stop the system
         self.system_check_tab.stop_system()
-        # Update button states and colors
-        self.start_button.config(state=tk.NORMAL, bg="#28A745")  # Green when enabled
-        self.stop_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled
-        self.emergency_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled
+        self.start_button.config(state=tk.NORMAL, bg="#28A745")
+        self.stop_button.config(state=tk.DISABLED, bg="#6C757D")
+        self.emergency_button.config(state=tk.DISABLED, bg="#6C757D")
         
-        # Enable Reset button ONLY if there's data to reset (after stop is confirmed)
         if hasattr(self.system_check_tab.app, 'shared_data') and self.system_check_tab.app.shared_data:
             bf_processed = self.system_check_tab.app.shared_data.get("system_check_bf_processed", 0)
             od_processed = self.system_check_tab.app.shared_data.get("system_check_od_processed", 0)
             
             if bf_processed > 0 or od_processed > 0:
-                # There's data - enable Reset button with red color
-                self.reset_button.config(state=tk.NORMAL, bg="#DC3545")  # Red when enabled
+                self.reset_button.config(state=tk.NORMAL, bg="#DC3545")
             else:
-                # No data - keep Reset button disabled
-                self.reset_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled
+                self.reset_button.config(state=tk.DISABLED, bg="#6C757D")
         else:
-            # No shared_data or no counters - keep disabled
             self.reset_button.config(state=tk.DISABLED, bg="#6C757D")
         
-        # Restore app closing
         if hasattr(self.app, 'on_closing'):
             self.app.protocol("WM_DELETE_WINDOW", self.app.on_closing)
         
@@ -195,14 +177,12 @@ class SystemControl:
             "Are you sure you want to reset all counters to zero?"
         )
         if not response:
-            return  # User cancelled - keep Reset button enabled
+            return
         
-        # User confirmed - reset counters
         self.system_check_tab.reset_counters()
         messagebox.showinfo("Success", "All counters have been reset to zero")
         
-        # Disable reset button after successful reset
-        self.reset_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled
+        self.reset_button.config(state=tk.DISABLED, bg="#6C757D")
     
     def _emergency_stop(self):
         """Emergency stop - immediate system halt."""
@@ -213,28 +193,24 @@ class SystemControl:
             icon='warning'
         )
         if not response:
-            return  # User cancelled
+            return
         
-        # User confirmed - emergency stop
         self.system_check_tab.stop_system()
-        # Update button states and colors
-        self.start_button.config(state=tk.NORMAL, bg="#28A745")  # Green when enabled
-        self.stop_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled
-        self.emergency_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled
+        self.start_button.config(state=tk.NORMAL, bg="#28A745")
+        self.stop_button.config(state=tk.DISABLED, bg="#6C757D")
+        self.emergency_button.config(state=tk.DISABLED, bg="#6C757D")
         
-        # Enable Reset button ONLY if there's data to reset
         if hasattr(self.system_check_tab.app, 'shared_data') and self.system_check_tab.app.shared_data:
             bf_processed = self.system_check_tab.app.shared_data.get("system_check_bf_processed", 0)
             od_processed = self.system_check_tab.app.shared_data.get("system_check_od_processed", 0)
             
             if bf_processed > 0 or od_processed > 0:
-                self.reset_button.config(state=tk.NORMAL, bg="#DC3545")  # Red when enabled
+                self.reset_button.config(state=tk.NORMAL, bg="#DC3545")
             else:
-                self.reset_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled
+                self.reset_button.config(state=tk.DISABLED, bg="#6C757D")
         else:
             self.reset_button.config(state=tk.DISABLED, bg="#6C757D")
         
-        # Restore app closing
         if hasattr(self.app, 'on_closing'):
             self.app.protocol("WM_DELETE_WINDOW", self.app.on_closing)
         
@@ -246,18 +222,16 @@ class SystemControl:
     
     def enable_start(self):
         """Enable start button, disable stop button."""
-        self.start_button.config(state=tk.NORMAL, bg="#28A745")  # Green
-        self.stop_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey
-        # Note: Reset button state is controlled by _stop_system and _emergency_stop
-        # Don't modify it here - it should remain in its current state
-        self.emergency_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled
+        self.start_button.config(state=tk.NORMAL, bg="#28A745")
+        self.stop_button.config(state=tk.DISABLED, bg="#6C757D")
+        self.emergency_button.config(state=tk.DISABLED, bg="#6C757D")
     
     def enable_stop(self):
         """Enable stop button, disable start button."""
-        self.start_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey
-        self.stop_button.config(state=tk.NORMAL, bg="#DC3545")  # Red
-        self.reset_button.config(state=tk.DISABLED, bg="#6C757D")  # Grey when disabled during system run
-        self.emergency_button.config(state=tk.NORMAL, bg="#FF0000")  # Red when enabled
+        self.start_button.config(state=tk.DISABLED, bg="#6C757D")
+        self.stop_button.config(state=tk.NORMAL, bg="#DC3545")
+        self.reset_button.config(state=tk.DISABLED, bg="#6C757D")
+        self.emergency_button.config(state=tk.NORMAL, bg="#FF0000")
     
     def _block_closing(self):
         """Block app closing when system is running."""

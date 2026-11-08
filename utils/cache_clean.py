@@ -13,4 +13,4 @@ def delete_all_pycache(start_path="."):
     print(f"\n✅ Done! Deleted {count} '__pycache__' folders.")
 
 if __name__ == "__main__":
-    delete_all_pycache(".")  # You can change "." to any folder path
+    delete_all_pycache(".")

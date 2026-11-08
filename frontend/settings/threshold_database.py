@@ -52,13 +52,10 @@ class ThresholdDatabase:
             
             cursor = connection.cursor()
             
-            # Format defect thresholds as string: "defect1:100%, defect2:50%"
             defect_threshold_str = ", ".join([f"{k}:{v}%" for k, v in defect_thresholds.items()])
             
-            # Format size thresholds as string: "defect1:1000, defect2:5000" (area in pixels)
             size_threshold_str = ", ".join([f"{k}:{v}" for k, v in size_thresholds.items()])
             
-            # Insert into bf_threshold_history
             query = """
                 INSERT INTO bf_threshold_history 
                 (employee_id, defect_threshold, size_threshold, model_threshold, model_name)
@@ -107,13 +104,10 @@ class ThresholdDatabase:
             
             cursor = connection.cursor()
             
-            # Format defect thresholds as string: "defect1:100%, defect2:50%"
             defect_threshold_str = ", ".join([f"{k}:{v}%" for k, v in defect_thresholds.items()])
             
-            # Format size thresholds as string: "defect1:1000, defect2:5000" (area in pixels)
             size_threshold_str = ", ".join([f"{k}:{v}" for k, v in size_thresholds.items()])
             
-            # Insert into od_threshold_history
             query = """
                 INSERT INTO od_threshold_history 
                 (employee_id, defect_threshold, size_threshold, model_threshold, model_name)

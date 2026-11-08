@@ -27,10 +27,9 @@ class ImageBackupManager:
         """
         self.parent = parent
         
-        # Variables
         self.src_path_var = tk.StringVar()
         self.dest_path_var = tk.StringVar()
-        self.selected_files = []  # For multiple image selection
+        self.selected_files = []
     
     def create_ui(self, container):
         """
@@ -39,7 +38,6 @@ class ImageBackupManager:
         Args:
             container: Container frame to pack into
         """
-        # Source Path Selection
         src_frame = tk.Frame(container, bg=Colors.PRIMARY_BG)
         src_frame.pack(fill=tk.X, pady=5)
         
@@ -88,7 +86,6 @@ class ImageBackupManager:
         )
         src_files_btn.pack(side=tk.LEFT, padx=2)
         
-        # Destination Path Selection
         dest_frame = tk.Frame(container, bg=Colors.PRIMARY_BG)
         dest_frame.pack(fill=tk.X, pady=5)
         
@@ -124,7 +121,6 @@ class ImageBackupManager:
         )
         dest_btn.pack(side=tk.LEFT, padx=5)
         
-        # Copy button
         copy_btn_frame = tk.Frame(container, bg=Colors.PRIMARY_BG)
         copy_btn_frame.pack(pady=10)
         
@@ -141,7 +137,6 @@ class ImageBackupManager:
         )
         copy_btn.pack()
         
-        # Info label
         info_label = tk.Label(
             container,
             text="💡 Select source (folder or multiple images) and destination",
@@ -154,7 +149,6 @@ class ImageBackupManager:
     
     def _select_source_folder(self):
         """Select source folder containing images."""
-        # Default to Inference folder on Desktop
         default_path = f"C:\\Users\\{os.getlogin()}\\Desktop\\Inference"
         
         folder_path = filedialog.askdirectory(
@@ -164,11 +158,10 @@ class ImageBackupManager:
         
         if folder_path:
             self.src_path_var.set(folder_path)
-            self.selected_files = []  # Clear file selection when folder is selected
+            self.selected_files = []
     
     def _select_source_files(self):
         """Select multiple source image files."""
-        # Default to Inference folder on Desktop
         default_path = f"C:\\Users\\{os.getlogin()}\\Desktop\\Inference"
         
         file_paths = filedialog.askopenfilenames(
@@ -201,7 +194,6 @@ class ImageBackupManager:
         try:
             log_info("backup", "Attempting to copy images/backup operation")
             
-            # Validate source
             src_path = self.src_path_var.get()
             if not src_path and not self.selected_files:
                 log_warning("backup", "Copy images failed: No source selected")
@@ -211,7 +203,6 @@ class ImageBackupManager:
                 )
                 return
             
-            # Validate destination
             dest_path = self.dest_path_var.get()
             if not dest_path:
                 log_warning("backup", "Copy images failed: No destination selected")
@@ -221,7 +212,6 @@ class ImageBackupManager:
                 )
                 return
             
-            # Check if destination exists
             if not os.path.exists(dest_path):
                 log_warning("backup", f"Copy images failed: Destination path does not exist - {dest_path}")
                 messagebox.showerror(
@@ -232,7 +222,6 @@ class ImageBackupManager:
             
             from .file_operations import FileOperations
             
-            # Get list of files to copy
             files_to_copy = FileOperations.get_files_to_copy(
                 src_path, 
                 self.selected_files
@@ -246,7 +235,6 @@ class ImageBackupManager:
                 )
                 return
             
-            # Calculate total size
             total_size = FileOperations.calculate_total_size(files_to_copy)
             file_count = len(files_to_copy)
             size_mb = total_size / (1024 * 1024)
@@ -255,14 +243,11 @@ class ImageBackupManager:
             
             from .storage_checker import StorageChecker
             
-            # Check destination storage
             if not StorageChecker.check_storage_space(dest_path, total_size):
                 log_warning("backup", f"Copy cancelled: Insufficient storage space at {dest_path}")
-                return  # User cancelled or insufficient space
+                return
             
-            # Check if destination folder already exists (for folder copy)
             if not self.selected_files:
-                # Folder is being copied
                 folder_name = os.path.basename(src_path)
                 final_dest_path = os.path.join(dest_path, folder_name)
                 
@@ -280,7 +265,6 @@ class ImageBackupManager:
                         log_info("backup", f"Copy cancelled by user - destination folder exists: {final_dest_path}")
                         return
             
-            # Confirm copy operation
             confirm = messagebox.askyesno(
                 "Confirm Copy",
                 f"📋 Copy Operation Details:\n\n"
@@ -297,7 +281,6 @@ class ImageBackupManager:
             from .copy_progress import CopyProgressWindow
             
             log_info("backup", f"Starting copy operation - {file_count} files")
-            # Perform copy with progress
             success_count, actual_dest_path = CopyProgressWindow.copy_files_with_progress(
                 self.parent,
                 files_to_copy,
@@ -306,7 +289,6 @@ class ImageBackupManager:
                 self.selected_files
             )
             
-            # Show completion message
             if success_count == file_count:
                 log_info("backup", f"Copy completed successfully - {success_count}/{file_count} files copied to {actual_dest_path}")
                 response = messagebox.askquestion(
@@ -319,7 +301,6 @@ class ImageBackupManager:
                 )
                 
                 if response == 'yes':
-                    # Normalize path for Windows Explorer (convert forward slashes to backslashes)
                     normalized_path = os.path.normpath(actual_dest_path)
                     subprocess.run(['explorer', normalized_path])
             else:

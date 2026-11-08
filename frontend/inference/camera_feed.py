@@ -31,7 +31,7 @@ class CameraFeed:
         self.canvas = None
         self._last_update_time = 0
         self._frame_skip_counter = 0
-        self._image_id = None  # Track canvas image ID for efficient updates
+        self._image_id = None
         
     def create(self, row, column):
         """
@@ -41,7 +41,6 @@ class CameraFeed:
             row: Grid row position
             column: Grid column position
         """
-        # Create frame for this camera (no border around the labeled frame)
         camera_frame = tk.LabelFrame(
             self.parent,
             text=self.title,
@@ -53,7 +52,6 @@ class CameraFeed:
         )
         camera_frame.grid(row=row, column=column, padx=5, pady=5, sticky="nsew")
         
-        # Create canvas for displaying video without border
         self.canvas = tk.Canvas(
             camera_frame,
             bg=Colors.BLACK,
@@ -76,30 +74,23 @@ class CameraFeed:
             return
         
         try:
-            # Check if canvas still exists (not destroyed)
             if not self.canvas.winfo_exists():
                 return
             
-            # Resize frame to fit canvas
             resized_frame = cv2.resize(frame, (AppConfig.CAMERA_WIDTH, AppConfig.CAMERA_HEIGHT))
             
-            # Convert from BGR to RGB
             img = PIL.Image.fromarray(cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB))
             imgtk = PIL.ImageTk.PhotoImage(image=img)
             
-            # Memory leak fix: Create new image first, then delete old one (prevents flicker)
             old_image_id = self._image_id
             self._image_id = self.canvas.create_image(0, 0, anchor=tk.NW, image=imgtk)
-            self.canvas.image = imgtk  # Keep a reference to prevent garbage collection
+            self.canvas.image = imgtk
             
-            # Delete old image after new one is displayed
             if old_image_id is not None:
                 self.canvas.delete(old_image_id)
         except tk.TclError:
-            # Widget has been destroyed, stop updating
             return
         except Exception as e:
-            # Handle any other exceptions silently
             print(f"Error updating camera feed: {e}")
             return
     
@@ -107,9 +98,7 @@ class CameraFeed:
         """Clean up resources and clear canvas."""
         try:
             if self.canvas and self.canvas.winfo_exists():
-                # Delete all canvas items
                 self.canvas.delete("all")
-                # Clear image reference
                 if hasattr(self.canvas, 'image'):
                     delattr(self.canvas, 'image')
             self._image_id = None
@@ -133,24 +122,19 @@ class CameraFeedManager:
         
     def setup(self, parent=None):
         """Setup all camera feeds."""
-        # Use provided parent or default to self.parent
         target_parent = parent if parent else self.parent
         
-        # Create main camera frame
         self.camera_frame = tk.Frame(target_parent, bg=Colors.PRIMARY_BG)
         self.camera_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         
-        # Configure grid weights
         self.camera_frame.grid_columnconfigure(0, weight=1)
         self.camera_frame.grid_columnconfigure(1, weight=1)
         self.camera_frame.grid_rowconfigure(0, weight=1)
         
-        # Create BF camera feed (left)
         bf_feed = CameraFeed(self.camera_frame, "BF Feed", "bf")
         bf_feed.create(row=0, column=0)
         self.feeds['bf'] = bf_feed
         
-        # Create OD camera feed (right)
         od_feed = CameraFeed(self.camera_frame, "OD Feed", "od")
         od_feed.create(row=0, column=1)
         self.feeds['od'] = od_feed

@@ -25,7 +25,6 @@ class ModelManagementTab:
         self.parent = parent
         self.app = app_instance
         
-        # Components
         self.upload_section = None
         self.models_table = None
         self.model_actions = None
@@ -35,11 +34,9 @@ class ModelManagementTab:
         try:
             log_info("model_management", "Setting up Model Management tab")
             
-            # Main container
             main_container = tk.Frame(self.parent, bg=Colors.PRIMARY_BG)
             main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
             
-            # Title
             title_label = tk.Label(
                 main_container,
                 text="AI Model Management",
@@ -49,11 +46,9 @@ class ModelManagementTab:
             )
             title_label.pack(pady=(0, 10))
             
-            # Upload section
             self.upload_section = UploadSection(main_container, self)
             self.upload_section.create()
             
-            # Loaded models section
             models_frame = tk.LabelFrame(
                 main_container,
                 text="📦 Loaded Models",
@@ -65,15 +60,12 @@ class ModelManagementTab:
             )
             models_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 5))
             
-            # Models table
             self.models_table = ModelsTable(models_frame, self)
             self.models_table.create()
             
-            # Model actions
             self.model_actions = ModelActions(main_container, self)
             self.model_actions.create()
             
-            # Load initial data
             self.refresh_models()
             
             log_info("model_management", "Model Management tab setup completed successfully")

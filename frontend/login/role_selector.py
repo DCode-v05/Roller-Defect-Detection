@@ -27,15 +27,12 @@ class RoleSelector:
         Returns:
             role_var: StringVar containing the selected role
         """
-        # Role selection frame
         role_frame = tk.Frame(self.parent, bg=Colors.BLACK)
         role_frame.pack(pady=(0, 30))
         
-        # Radio buttons container
         radio_container = tk.Frame(role_frame, bg=Colors.BLACK)
         radio_container.pack()
         
-        # Create radio buttons
         roles = [
             ("Operator", "Operator"),
             ("Admin", "Admin"),

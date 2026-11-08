@@ -18,7 +18,6 @@ class LoginHeader:
         Args:
             parent: Parent frame to contain the header
         """
-        # Logo
         logo_label = tk.Label(
             parent, 
             text="WELVISION", 
@@ -28,7 +27,6 @@ class LoginHeader:
         )
         logo_label.pack(pady=(20, 10))
         
-        # Subtitle
         subtitle_label = tk.Label(
             parent, 
             text="Please sign in to continue", 

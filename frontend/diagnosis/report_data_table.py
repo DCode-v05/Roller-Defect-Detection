@@ -27,7 +27,6 @@ class ReportDataTable:
         
     def create(self):
         """Create the report data table UI."""
-        # Container frame with label and fixed width
         self.container = tk.LabelFrame(
             self.parent,
             text="Report Data",
@@ -36,25 +35,21 @@ class ReportDataTable:
             bg=Colors.PRIMARY_BG,
             bd=2,
             relief=tk.RIDGE,
-            width=700  # Fixed width to make room for controls
+            width=700
         )
         self.container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
-        self.container.pack_propagate(False)  # Prevent resizing based on content
+        self.container.pack_propagate(False)
         
-        # Create treeview with scrollbar
         self.tree_frame = tk.Frame(self.container, bg=Colors.PRIMARY_BG)
         self.tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Scrollbars
         self.v_scrollbar = ttk.Scrollbar(self.tree_frame, orient=tk.VERTICAL)
         self.h_scrollbar = ttk.Scrollbar(self.tree_frame, orient=tk.HORIZONTAL)
         
-        # Initialize with default columns (Overall)
         self._create_tree_for_report_type("Overall")
     
     def _create_tree_for_report_type(self, report_type):
         """Create treeview with columns based on report type."""
-        # Define columns based on report type
         if report_type == "BF":
             columns = (
                 "S.No", "Component Type", "Employee ID", "Report Date", "Start Time", "End Time",
@@ -81,7 +76,7 @@ class ReportDataTable:
                 "Rust": 80, "Damage": 80, "Dent": 80, "Damage on End": 110,
                 "Spherical Mark": 110, "Others": 80
             }
-        else:  # Overall
+        else:
             columns = (
                 "S.No", "Component Type", "Employee ID", "Report Date", "Start Time", "End Time",
                 "Overall Inspected", "Overall Accepted", "Overall Rejected", "Acceptance Rate",
@@ -98,11 +93,9 @@ class ReportDataTable:
         
         self.current_columns = columns
         
-        # Destroy existing tree if it exists
         if self.tree:
             self.tree.destroy()
         
-        # Create treeview
         self.tree = ttk.Treeview(
             self.tree_frame,
             columns=columns,
@@ -115,12 +108,10 @@ class ReportDataTable:
         self.v_scrollbar.config(command=self.tree.yview)
         self.h_scrollbar.config(command=self.tree.xview)
         
-        # Configure columns
         for col in columns:
             self.tree.column(col, width=column_widths.get(col, 100), anchor=tk.CENTER)
             self.tree.heading(col, text=col, anchor=tk.CENTER)
         
-        # Style configuration
         style = ttk.Style()
         style.theme_use("default")
         
@@ -143,7 +134,6 @@ class ReportDataTable:
         
         style.map("Treeview", background=[("selected", Colors.PRIMARY_BLUE)])
         
-        # Pack widgets
         self.tree.grid(row=0, column=0, sticky="nsew")
         self.v_scrollbar.grid(row=0, column=1, sticky="ns")
         self.h_scrollbar.grid(row=1, column=0, sticky="ew")
@@ -159,14 +149,11 @@ class ReportDataTable:
             data: List of dictionaries with report data
             report_type: Type of report (BF, OD, Overall)
         """
-        # Recreate tree with appropriate columns
         self._create_tree_for_report_type(report_type)
         
-        # Clear existing data
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        # Insert new data
         totals = {}
         for col in self.current_columns:
             totals[col] = 0
@@ -180,7 +167,6 @@ class ReportDataTable:
                     val = row.get(col, 0)
                 values.append(val)
                 
-                # Sum numeric columns
                 if col not in ["S.No", "Component Type", "Employee ID", "Report Date", "Start Time", "End Time", "Acceptance Rate"]:
                     try:
                         if isinstance(val, str) and '%' in val:
@@ -191,7 +177,6 @@ class ReportDataTable:
             
             self.tree.insert("", tk.END, values=values)
         
-        # Add totals row
         if data:
             total_values = []
             for col in self.current_columns:
@@ -202,14 +187,13 @@ class ReportDataTable:
                 elif col in ["Employee ID", "Report Date", "Start Time", "End Time"]:
                     total_values.append("")
                 elif col == "Acceptance Rate":
-                    # Calculate overall acceptance rate
                     if report_type == "BF":
                         inspected = totals.get("BF Inspected", 0)
                         accepted = totals.get("BF Accepted", 0)
                     elif report_type == "OD":
                         inspected = totals.get("OD Inspected", 0)
                         accepted = totals.get("OD Accepted", 0)
-                    else:  # Overall
+                    else:
                         inspected = totals.get("Overall Inspected", 0)
                         accepted = totals.get("Overall Accepted", 0)
                     
@@ -218,8 +202,6 @@ class ReportDataTable:
                 else:
                     total_values.append(totals.get(col, 0))
             
-            # Insert total row with special tag
             total_item = self.tree.insert("", tk.END, values=total_values, tags=('total',))
             
-            # Style the total row
             self.tree.tag_configure('total', background='#E0E0E0', font=Fonts.SMALL_BOLD)

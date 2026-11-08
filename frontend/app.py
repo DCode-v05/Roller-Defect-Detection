@@ -68,20 +68,16 @@ class WelVisionApp(tk.Tk):
         """Initialize the WelVision application."""
         super().__init__()
         
-        # Window configuration
         self.title(AppConfig.WINDOW_TITLE)
         self.geometry(f"{AppConfig.WINDOW_WIDTH}x{AppConfig.WINDOW_HEIGHT}")
         self.configure(bg=Colors.PRIMARY_BG)
-        self.iconbitmap(default="")  # Add your icon path if available
+        self.iconbitmap(default="")
         
-        # Center window on screen
         center_window(self, AppConfig.WINDOW_WIDTH, AppConfig.WINDOW_HEIGHT)
         
-        # User session
         self.current_user = None
         self.current_role = None
         
-        # Statistics variables
         self.od_inspected = 0
         self.od_defective = 0
         self.od_good = 0
@@ -89,39 +85,30 @@ class WelVisionApp(tk.Tk):
         self.bf_defective = 0
         self.bf_good = 0
         
-        # Inspection status
         self.inspection_running = False
         self.camera_running = False
-        self.inspection_has_run = False  # Track if inspection has been run at least once
+        self.inspection_has_run = False
         
-        # Process manager for cleanup
         self.process_manager = ProcessManager()
         self.camera_stop_flag = ThreadStopFlag()
         
-        # Roller data update flag (for inference page refresh)
         self.roller_data_updated = False
         
-        # Defect thresholds (will be loaded from database)
         self.od_defect_thresholds = None
         self.bf_defect_thresholds = None
         
-        # Model confidence thresholds (will be loaded from database)
         self.od_conf_threshold = None
         self.bf_conf_threshold = None
         
-        # Selected model paths from Settings (will be loaded from database)
         self.selected_bf_model_path = None
         self.selected_bf_model_name = None
         self.selected_od_model_path = None
         self.selected_od_model_name = None
         
-        # Selected roller type (will persist across page navigation)
         self.selected_roller_type = None
         
-        # Load latest models from database on startup
         self._load_latest_models_from_db()
         
-        # Page references
         self.login_page = None
         self.navbar_manager = None
         self.inference_tab = None
@@ -134,23 +121,18 @@ class WelVisionApp(tk.Tk):
         self.user_management_tab = None
         self.backup_tab = None
         
-        # Content frame reference
         self.content_frame = None
         self.current_tab_frame = None
         
-        # Backend system variables (will be initialized later)
         self.plc_process = None
         self.processes = []
         self.shared_data = None
         self.manager = None
         
-        # Footer
         self.footer_frame = None
         
-        # Logout button reference
         self.logout_button = None
         
-        # Show login page
         self.show_login_page()
     
     def _load_latest_models_from_db(self):
@@ -168,14 +150,12 @@ class WelVisionApp(tk.Tk):
             
             cursor = connection.cursor()
             
-            # Load latest BF model
             cursor.execute("SELECT model_name, model_path FROM bf_models ORDER BY upload_date DESC LIMIT 1")
             bf_result = cursor.fetchone()
             if bf_result:
                 self.selected_bf_model_name = bf_result[0]
                 self.selected_bf_model_path = bf_result[1]
                 
-                # Load latest BF threshold for this model
                 cursor.execute("""
                     SELECT model_threshold 
                     FROM bf_threshold_history 
@@ -187,18 +167,15 @@ class WelVisionApp(tk.Tk):
                 if bf_threshold_result:
                     self.bf_conf_threshold = float(bf_threshold_result[0])
             else:
-                # No models in database
                 self.selected_bf_model_path = None
                 self.selected_bf_model_name = "No Model Available"
             
-            # Load latest OD model
             cursor.execute("SELECT model_name, model_path FROM od_models ORDER BY upload_date DESC LIMIT 1")
             od_result = cursor.fetchone()
             if od_result:
                 self.selected_od_model_name = od_result[0]
                 self.selected_od_model_path = od_result[1]
                 
-                # Load latest OD threshold for this model
                 cursor.execute("""
                     SELECT model_threshold 
                     FROM od_threshold_history 
@@ -210,7 +187,6 @@ class WelVisionApp(tk.Tk):
                 if od_threshold_result:
                     self.od_conf_threshold = float(od_threshold_result[0])
             else:
-                # No models in database
                 self.selected_od_model_path = None
                 self.selected_od_model_name = "No Model Available"
             
@@ -224,7 +200,6 @@ class WelVisionApp(tk.Tk):
                 "DB_HOST": AppConfig.DB_HOST,
                 "DB_DATABASE": AppConfig.DB_DATABASE
             })
-            # No models available on error
             self.selected_bf_model_path = None
             self.selected_bf_model_name = "No Model Available"
             self.selected_od_model_path = None
@@ -236,10 +211,8 @@ class WelVisionApp(tk.Tk):
         Called when models are uploaded or deleted in Model Management tab.
         """
         
-        # Reload models from database
         self._load_latest_models_from_db()
         
-        # Notify Inference tab to update status panel
         if hasattr(self, 'inference_tab') and self.inference_tab:
             if hasattr(self.inference_tab, 'status_panel') and self.inference_tab.status_panel:
                 try:
@@ -248,16 +221,12 @@ class WelVisionApp(tk.Tk):
                 except Exception as e:
                     print(f"⚠️ Could not update Inference status panel: {e}")
         
-        # Notify Settings tab to reload
         if hasattr(self, 'settings_tab') and self.settings_tab:
-            # Check if settings tab is currently active
             current_tab = getattr(self, 'current_tab_id', None)
             if current_tab == 'settings':
                 try:
-                    # Save preview state
                     was_preview_active = getattr(self.settings_tab, 'preview_active', False)
                     
-                    # Recreate settings tab
                     self.settings_tab.parent = self.current_tab_frame
                     self.settings_tab.setup()
                     
@@ -265,41 +234,32 @@ class WelVisionApp(tk.Tk):
                     print(f"⚠️ Could not refresh Settings tab: {e}")
         
                         
-    
     def show_login_page(self):
         """Display the login page."""
-        # Set current page to login (no error popups on login page)
         DatabaseErrorHandler.set_current_page("login")
         
-        # Stop camera threads if running
         if hasattr(self, 'camera_running') and self.camera_running:
             self.camera_running = False
-            self.camera_stop_flag.set()  # Signal threads to stop
-            time.sleep(0.3)  # Give threads time to stop
+            self.camera_stop_flag.set()
+            time.sleep(0.3)
         
-        # Stop inspection if running
         if hasattr(self, 'inspection_running') and self.inspection_running:
             self.stop_inspection()
         
-        # Show login page
         self.login_page = LoginPage(self, self.on_login_success)
         self.login_page.show()
         
-        # Add global footer
         self._create_global_footer()
     
     def _create_global_footer(self):
         """Create footer with company name that appears on all pages."""
-        # Remove existing footer if present
         if hasattr(self, 'footer_frame') and self.footer_frame:
             self.footer_frame.destroy()
         
-        # Create footer frame with higher priority (pack at bottom)
         self.footer_frame = tk.Frame(self, bg=Colors.SECONDARY_BG, height=40)
         self.footer_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=0)
-        self.footer_frame.pack_propagate(False)  # Maintain fixed height
+        self.footer_frame.pack_propagate(False)
         
-        # Create company label centered in footer
         company_label = tk.Label(
             self.footer_frame,
             text="Developed and Maintained by © Welvision Pvt Limited",
@@ -323,62 +283,49 @@ class WelVisionApp(tk.Tk):
     
     def show_main_interface(self):
         """Display the main application interface."""
-        # Initialize backend system
         self.initialize_system()
         
-        # Clear any existing widgets
         for widget in self.winfo_children():
             widget.destroy()
         
-        # Add global footer first (at bottom of window)
         self._create_global_footer()
         
-        # Create main frame
         main_frame = tk.Frame(self, bg=Colors.PRIMARY_BG)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Create header and store logout button reference
         header_frame, self.logout_button, self.debug_checkbutton = create_header(
             main_frame, 
             AppConfig.WINDOW_TITLE,
             self.current_user, 
             self.current_role, 
             self.show_login_page,
-            self  # Pass app instance for debug toggle
+            self
         )
         
-        # Create navigation bar
         self.navbar_manager = NavBarManager(main_frame, self.on_nav_change, self)
         self.navbar_manager.create()
         
-        # Create content frame for tabs
         self.content_frame = tk.Frame(main_frame, bg=Colors.PRIMARY_BG)
         self.content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
-        # Set window close protocol handler
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
-        # Show initial tab (Inference)
         self.show_tab("inference")
         
-        # Start camera feeds
         self.start_camera_feeds()
         
-        # Start updating statistics
         self.update_statistics()
     
     def initialize_system(self):
         """Initialize the backend inspection system."""
         
         
-        # Frame shape
         self.frame_shape = (
             AppConfig.CAMERA_FRAME_HEIGHT, 
             AppConfig.CAMERA_FRAME_WIDTH, 
             3
         )
         
-        # Shared memory and process communication
         self.manager = Manager()
         self.shared_data = self.manager.dict()
         self.shared_data['bigface'] = False
@@ -395,9 +342,8 @@ class WelVisionApp(tk.Tk):
         self.shared_data["system_ready"] = False 
         self.shared_data["disc_status"] = False 
         self.shared_data["allow_all"] = False
-        self.shared_data["debug_enabled"] = False  # For backend logging 
+        self.shared_data["debug_enabled"] = False
         
-        # BF Defect Statistics (Inference)
         self.shared_data["bf_inspected"] = 0
         self.shared_data["bf_ok_rollers"] = 0
         self.shared_data["bf_not_ok_rollers"] = 0
@@ -408,7 +354,6 @@ class WelVisionApp(tk.Tk):
         self.shared_data["down_head"] = 0
         self.shared_data["others"] = 0
         
-        # OD Defect Statistics (Inference)
         self.shared_data["od_inspected"] = 0
         self.shared_data["od_ok_rollers"] = 0
         self.shared_data["od_not_ok_rollers"] = 0
@@ -419,7 +364,6 @@ class WelVisionApp(tk.Tk):
         self.shared_data["od_spherical_mark"] = 0
         self.shared_data["od_others"] = 0
         
-        # System Check Statistics (Pattern-based control)
         self.shared_data["system_check_bf_processed"] = 0
         self.shared_data["system_check_bf_accepted"] = 0
         self.shared_data["system_check_bf_rejected"] = 0
@@ -430,10 +374,8 @@ class WelVisionApp(tk.Tk):
         self.shared_data["system_check_total_accepted"] = 0
         self.shared_data["system_check_total_rejected"] = 0
         
-        # Track inspection session start time
         self.inspection_start_time = None
         
-        # System error flag
         self.shared_data["system_error"] = False
         
         self.command_queue = Queue()
@@ -446,7 +388,6 @@ class WelVisionApp(tk.Tk):
         self.roller_queue_bigface = Queue()
         self.roller_updation_dict = self.manager.dict()
         
-        # Shared frames
         self.shared_frame_bigface = Array('B', np.zeros(self.frame_shape, dtype=np.uint8).flatten())
         self.shared_frame_od = Array('B', np.zeros(self.frame_shape, dtype=np.uint8).flatten())
         
@@ -454,14 +395,12 @@ class WelVisionApp(tk.Tk):
         self.frame_lock_od = Lock()
         self.queue_lock = Lock()
         
-        # Shared memory for storing annotated frames
         self.shared_annotated_bigface = Array('B', np.zeros(self.frame_shape, dtype=np.uint8).flatten())
         self.shared_annotated_od = Array('B', np.zeros(self.frame_shape, dtype=np.uint8).flatten())
         
         self.annotated_frame_lock_bigface = Lock()
         self.annotated_frame_lock_od = Lock()
         
-        # PLC configuration
         self.PLC_IP = AppConfig.PLC_IP
         self.RACK = AppConfig.PLC_RACK
         self.SLOT = AppConfig.PLC_SLOT
@@ -475,7 +414,6 @@ class WelVisionApp(tk.Tk):
             args=(self.PLC_IP, self.RACK, self.SLOT, self.DB_NUMBER, self.shared_data, self.command_queue),
             daemon=True
         )
-        # Register PLC process
         self.process_manager.register_plc_process(self.plc_process)
         
         self.processes = [
@@ -534,7 +472,6 @@ class WelVisionApp(tk.Tk):
             )
         ]
         
-        # Register all inference processes
         for process in self.processes:
             self.process_manager.register_inference_process(process)
     
@@ -550,7 +487,6 @@ class WelVisionApp(tk.Tk):
             
             log_info(page_name, "Starting inspection process")
             
-            # Reset system error flag
             if hasattr(self, 'shared_data'):
                 self.shared_data['system_error'] = False
             
@@ -558,27 +494,22 @@ class WelVisionApp(tk.Tk):
             if self.inference_tab and self.inference_tab.control_panel:
                 self.inference_tab.control_panel.enable_stop()
             
-            # Record start time
             from datetime import datetime
             self.inspection_start_time = datetime.now().time()
             log_info(page_name, f"Inspection start time: {self.inspection_start_time}")
             
-            # Recreate processes before starting
             self.create_processes()
             
-            # Start PLC process
             if self.plc_process is not None:
                 self.plc_process.start()
                 log_info(page_name, "PLC process started")
             
-            # Start subprocesses
             for idx, process in enumerate(self.processes):
                 process.start()
                 log_info(page_name, f"Subprocess {idx+1}/{len(self.processes)} started")
             
             log_info(page_name, "✅ Inspection started successfully")
             
-            # Start monitoring for system errors
             self._monitor_system_error()
             
         except Exception as e:
@@ -587,7 +518,6 @@ class WelVisionApp(tk.Tk):
                 "selected_bf_model": getattr(self, 'selected_bf_model_name', 'Unknown'),
                 "selected_od_model": getattr(self, 'selected_od_model_name', 'Unknown')
             })
-            # Ensure inspection is stopped if error occurs
             self.inspection_running = False
             if self.inference_tab and self.inference_tab.control_panel:
                 self.inference_tab.control_panel.enable_start()
@@ -606,7 +536,6 @@ class WelVisionApp(tk.Tk):
             
             log_info(page_name, "Stopping inspection process")
             
-            # Turn off PLC lights
             plc_client = snap7.client.Client() 
             try:
                 plc_client.connect(self.PLC_IP, self.RACK, self.SLOT)
@@ -629,19 +558,15 @@ class WelVisionApp(tk.Tk):
             if self.inference_tab and self.inference_tab.control_panel:
                 self.inference_tab.control_panel.enable_start()
             
-            # Use process manager to stop all inference processes
             self.process_manager.stop_all_inference()
             log_info(page_name, "All inference processes stopped")
             
-            # Clean up GPU memory
             self.process_manager.cleanup_gpu_memory()
             log_info(page_name, "GPU memory cleaned up")
             
-            # Clear process references
             self.plc_process = None
             self.processes = []
             
-            # Clean up camera feeds to release image memory
             if hasattr(self, 'inference_tab') and self.inference_tab:
                 if hasattr(self.inference_tab, 'camera_manager') and self.inference_tab.camera_manager:
                     for feed_id in ['bf', 'od']:
@@ -649,11 +574,9 @@ class WelVisionApp(tk.Tk):
                         if feed and hasattr(feed, 'cleanup'):
                             feed.cleanup()
             
-            # Force garbage collection to free memory
             import gc
             gc.collect()
             
-            # Small delay to ensure processes are fully stopped
             time.sleep(0.3)
             
             log_info(page_name, "✅ Inspection stopped successfully")
@@ -677,40 +600,32 @@ class WelVisionApp(tk.Tk):
         Args:
             tab_id: ID of the tab to show
         """
-        # Track current tab
         self.current_tab_id = tab_id
         
-        # Update debug checkbox state for current page
         if hasattr(self, 'debug_var') and hasattr(self, 'debug_checkbutton'):
             is_enabled = debug_logger.is_enabled(tab_id)
             self.debug_var.set(is_enabled)
             if is_enabled:
-                self.debug_checkbutton.config(fg="#00ff00")  # Green when enabled
+                self.debug_checkbutton.config(fg="#00ff00")
             else:
-                self.debug_checkbutton.config(fg=Colors.WHITE)  # White when disabled
+                self.debug_checkbutton.config(fg=Colors.WHITE)
         
-        # Set current page for error handler and reset error flag
         DatabaseErrorHandler.set_current_page(tab_id)
         
-        # Log page navigation if debug is enabled
         log_info(tab_id, f"Navigated to {tab_id} page")
         
         try:
-            # Store reference to previous settings tab if it exists and has active preview
             previous_settings_tab = None
             if hasattr(self, 'settings_tab') and self.settings_tab is not None:
                 if hasattr(self.settings_tab, 'preview_active') and self.settings_tab.preview_active:
-                    # Keep reference to preserve state
                     previous_settings_tab = self.settings_tab
                 elif tab_id != "settings":
-                    # Cleanup settings tab when navigating away (no active preview)
                     try:
                         if hasattr(self.settings_tab, 'cleanup'):
                             self.settings_tab.cleanup()
                     except Exception as e:
                         log_error(tab_id, "Failed to cleanup settings tab", e)
             
-            # Cleanup info tab when navigating away
             if hasattr(self, 'info_tab') and self.info_tab is not None and tab_id != "info":
                 try:
                     if hasattr(self.info_tab, 'cleanup'):
@@ -718,20 +633,15 @@ class WelVisionApp(tk.Tk):
                 except Exception as e:
                     log_error(tab_id, "Failed to cleanup info tab", e)
             
-            # Clear current tab content - use destroy_later for smoother transition
             if self.current_tab_frame:
                 old_frame = self.current_tab_frame
-                # Schedule destruction after new frame is created
                 self.after(10, lambda: old_frame.destroy() if old_frame.winfo_exists() else None)
             
-            # Create new tab frame
             self.current_tab_frame = tk.Frame(self.content_frame, bg=Colors.PRIMARY_BG)
             self.current_tab_frame.pack(fill=tk.BOTH, expand=True)
             
-            # Setup the appropriate tab with error handling
             self._setup_tab_content(tab_id, previous_settings_tab)
             
-            # Update navbar active state
             if self.navbar_manager:
                 self.navbar_manager.set_active_button(tab_id)
                 
@@ -740,7 +650,6 @@ class WelVisionApp(tk.Tk):
                 "current_user": self.current_user,
                 "current_role": self.current_role
             })
-            # Show error to user
             import tkinter.messagebox as messagebox
             messagebox.showerror(
                 "Tab Load Error",
@@ -761,7 +670,6 @@ class WelVisionApp(tk.Tk):
                 log_info(tab_id, "Setting up Inference tab")
                 self.inference_tab = InferenceTab(self.current_tab_frame, self)
                 self.inference_tab.setup()
-                # Restart camera feeds if they were running
                 if self.camera_running:
                     self.start_camera_feeds()
             
@@ -777,13 +685,11 @@ class WelVisionApp(tk.Tk):
             
             elif tab_id == "settings":
                 log_info(tab_id, "Setting up Settings tab")
-                # If we have a previous settings tab with active preview, restore it
                 if previous_settings_tab is not None:
                     self.settings_tab = previous_settings_tab
                     self.settings_tab.parent = self.current_tab_frame
                     self.settings_tab.setup()
                 else:
-                    # Create fresh settings tab instance
                     self.settings_tab = SettingsTab(self.current_tab_frame, self)
                     self.settings_tab.setup()
             
@@ -816,7 +722,7 @@ class WelVisionApp(tk.Tk):
             
         except Exception as e:
             log_error(tab_id, f"Error during {tab_id} tab setup", e)
-            raise  # Re-raise to be caught by show_tab
+            raise
     
     def _show_placeholder_tab(self, title, description):
         """
@@ -865,16 +771,14 @@ class WelVisionApp(tk.Tk):
     def update_statistics(self):
         """Update statistics display (mock data for now)."""
         if hasattr(self, 'od_inspected_var') and self.inspection_running:
-            # Increment counters randomly for demonstration
-            if np.random.random() < 0.2:  # 20% chance to update
+            if np.random.random() < 0.2:
                 self.od_inspected += 1
-                defect = np.random.random() < 0.3  # 30% chance of defect
+                defect = np.random.random() < 0.3
                 if defect:
                     self.od_defective += 1
                 else:
                     self.od_good += 1
                 
-                # Update display variables
                 self.od_inspected_var.set(str(self.od_inspected))
                 self.od_defective_var.set(str(self.od_defective))
                 self.od_good_var.set(str(self.od_good))
@@ -883,16 +787,14 @@ class WelVisionApp(tk.Tk):
                     proportion = (self.od_defective / self.od_inspected) * 100
                     self.od_proportion_var.set(f"{proportion:.1f}%")
             
-            # BIG FACE statistics
-            if np.random.random() < 0.2:  # 20% chance to update
+            if np.random.random() < 0.2:
                 self.bf_inspected += 1
-                defect = np.random.random() < 0.2  # 20% chance of defect
+                defect = np.random.random() < 0.2
                 if defect:
                     self.bf_defective += 1
                 else:
                     self.bf_good += 1
                 
-                # Update display variables
                 self.bf_inspected_var.set(str(self.bf_inspected))
                 self.bf_defective_var.set(str(self.bf_defective))
                 self.bf_good_var.set(str(self.bf_good))
@@ -901,7 +803,6 @@ class WelVisionApp(tk.Tk):
                     proportion = (self.bf_defective / self.bf_inspected) * 100
                     self.bf_proportion_var.set(f"{proportion:.1f}%")
             
-            # Update total statistics
             total_inspected = self.od_inspected + self.bf_inspected
             total_defective = self.od_defective + self.bf_defective
             total_good = self.od_good + self.bf_good
@@ -914,7 +815,6 @@ class WelVisionApp(tk.Tk):
                 total_proportion = (total_defective / total_inspected) * 100
                 self.total_proportion_var.set(f"{total_proportion:.1f}%")
         
-        # Schedule next update
         self.after(100, self.update_statistics)
     
     def update_threshold(self, val, label, defect, is_od):
@@ -929,7 +829,6 @@ class WelVisionApp(tk.Tk):
         """
         label.config(text=f"{int(float(val))}%")
         
-        # Update the threshold in the appropriate dictionary
         if is_od:
             self.od_defect_thresholds[defect] = int(float(val))
         else:
@@ -940,11 +839,9 @@ class WelVisionApp(tk.Tk):
         if not hasattr(self, 'inspection_running') or not self.inspection_running:
             return
         
-        # Get current confidence values
         od_conf = self.od_conf_threshold
         bf_conf = self.bf_conf_threshold
                 
-        # Update the shared data dictionary with new confidence values
         if hasattr(self, 'shared_data'):
             self.shared_data['od_conf_threshold'] = od_conf
             self.shared_data['bf_conf_threshold'] = bf_conf
@@ -952,15 +849,11 @@ class WelVisionApp(tk.Tk):
     def _monitor_system_error(self):
         """Monitor for system errors and handle them."""
         if hasattr(self, 'shared_data') and self.shared_data:
-            # Check if system error occurred
             if self.shared_data.get('system_error', False):
-                # Reset the flag
                 self.shared_data['system_error'] = False
                 
-                # Show error popup
                 self._show_system_error_popup()
         
-        # Continue monitoring every 500ms if any system is running
         is_any_system_running = (
             (hasattr(self, 'inspection_running') and self.inspection_running) or
             (hasattr(self, 'system_check_running') and self.system_check_running)
@@ -973,15 +866,12 @@ class WelVisionApp(tk.Tk):
         """Show error popup and stop all processes."""
         from tkinter import messagebox
         
-        # Track which module had the error for cleanup
         error_in_inference = hasattr(self, 'inspection_running') and self.inspection_running
         error_in_settings = hasattr(self, 'settings_tab') and self.settings_tab and hasattr(self.settings_tab, 'preview_active') and self.settings_tab.preview_active
         error_in_system_check = hasattr(self, 'system_check_tab') and self.system_check_tab and hasattr(self.system_check_tab, 'system_running') and self.system_check_tab.system_running
         
-        # Stop inspection immediately if running
         if error_in_inference:
             try:
-                # Turn off PLC lights
                 plc_client = snap7.client.Client() 
                 try:
                     plc_client.connect(self.PLC_IP, self.RACK, self.SLOT)
@@ -995,33 +885,26 @@ class WelVisionApp(tk.Tk):
                 except:
                     pass
                 
-                # Stop all processes
                 self.inspection_running = False
                 if self.inference_tab and self.inference_tab.control_panel:
                     self.inference_tab.control_panel.enable_start()
                 
-                # Use process manager to stop all inference processes
                 self.process_manager.stop_all_inference()
                 
-                # Clean up GPU memory
                 self.process_manager.cleanup_gpu_memory()
                 
-                # Clear process references
                 self.plc_process = None
                 self.processes = []
                 
             except Exception as e:
                 print(f"❌ Error during emergency shutdown: {e}")
         
-        # Stop settings preview if running
         if error_in_settings:
             try:
-                # Force stop preview without save/discard dialog
                 self.settings_tab.preview_active = False
                 if self.settings_tab.preview_stop_flag:
                     self.settings_tab.preview_stop_flag.set()
                 
-                # Turn off PLC lights
                 try:
                     plc_client = snap7.client.Client()
                     plc_client.connect("172.17.8.17", 0, 1)
@@ -1033,7 +916,6 @@ class WelVisionApp(tk.Tk):
                 except:
                     pass
                 
-                # Unload models
                 if self.settings_tab.preview_bf_model is not None:
                     del self.settings_tab.preview_bf_model
                     self.settings_tab.preview_bf_model = None
@@ -1042,7 +924,6 @@ class WelVisionApp(tk.Tk):
                     del self.settings_tab.preview_od_model
                     self.settings_tab.preview_od_model = None
                 
-                # Stop camera processes
                 if self.settings_tab.preview_bf_camera_process is not None:
                     self.process_manager.register_preview_process(self.settings_tab.preview_bf_camera_process)
                 
@@ -1051,34 +932,28 @@ class WelVisionApp(tk.Tk):
                 
                 self.process_manager.stop_all_preview()
                 
-                # Clear references
                 self.settings_tab.preview_bf_camera_process = None
                 self.settings_tab.preview_od_camera_process = None
                 
-                # Unblock navigation and controls
                 self.settings_tab._unblock_navigation_buttons()
                 self.settings_tab._unblock_logout_button()
                 self.settings_tab._unblock_model_dropdowns()
                 self.settings_tab._unblock_save_button()
                 
-                # Update preview control panel
                 if self.settings_tab.preview_control_panel:
                     self.settings_tab.preview_control_panel.enable_start()
                 
             except Exception as e:
                 print(f"❌ Error stopping settings preview: {e}")
         
-        # Stop system check if running
         if error_in_system_check:
             try:
-                # Force stop system check
                 if self.system_check_tab.plc_controller:
                     self.system_check_tab.plc_controller.stop_monitoring()
                 
                 self.system_check_tab.system_running = False
                 self.system_check_tab.app.system_check_running = False
                 
-                # Unblock navigation and controls
                 self.system_check_tab._unblock_navigation_buttons()
                 self.system_check_tab._unblock_logout_button()
                 
@@ -1093,14 +968,11 @@ class WelVisionApp(tk.Tk):
             except Exception as e:
                 print(f"❌ Error stopping system check: {e}")
         
-        # Restore normal app closing protocol
         if hasattr(self, 'on_closing'):
             self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
-        # Clean up GPU memory
         self.process_manager.cleanup_gpu_memory()
         
-        # Show error message
         messagebox.showerror(
             "System Error Detected",
             "⚠️ A critical system error has occurred!\n\n"
@@ -1119,7 +991,6 @@ class WelVisionApp(tk.Tk):
         """Handle application closing."""
         from tkinter import messagebox
         
-        # Check if settings preview is active
         if hasattr(self, 'settings_tab') and self.settings_tab:
             if hasattr(self.settings_tab, 'preview_active') and self.settings_tab.preview_active:
                 response = messagebox.askyesno(
@@ -1131,28 +1002,23 @@ class WelVisionApp(tk.Tk):
                 if not response:
                     return  
         
-        # Always show confirmation dialog when closing
         response = messagebox.askyesno(
             "Confirm Exit",
             "Are you sure you want to close the application?"
         )
         
         if not response:
-            return  # User cancelled
+            return
         
         print("Closing application...")
-        # Stop camera threads
         self.camera_running = False
         self.camera_stop_flag.set()
         
-        # Stop inspection if running
         if self.inspection_running:
             self.stop_inspection()
         
-        # Stop all remaining processes and threads
         self.process_manager.stop_everything()
         
-        # Clean up cache and GPU memory
         delete_all_pycache(".")
         self.process_manager.cleanup_gpu_memory()
 
