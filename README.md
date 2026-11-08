@@ -1,74 +1,192 @@
-# Roller-Defect-Detection
+# WelVision — Automated Roller Defect Inspection
 
-A desktop inspection station for a roller production line. Two cameras watch two faces of each roller, YOLO models flag surface defects, and the app tells a Siemens S7 PLC to accept or reject the part. Each session is logged to MySQL.
+**A Python vision station that inspects manufactured rollers in real time, scores both faces with YOLO, and drives a Siemens PLC to accept or reject each part on the line.**
 
-I built it at iQube (KCT's innovation centre) for Welvision Pvt. Ltd., and the project is called WelVision in the code. It is one Tkinter application that starts several worker processes for camera capture, GPU inference and PLC I/O. Splitting them keeps inference from stalling when the GUI redraws or a camera blocks. The repo contains the application code, the three trained model weights, the camera profiles and the database setup script.
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white) ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&logo=pytorch&logoColor=white) ![Ultralytics YOLO](https://img.shields.io/badge/Ultralytics_YOLO-111F68?style=flat&logo=ultralytics&logoColor=white) ![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?style=flat&logo=opencv&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logo=mysql&logoColor=white) ![NVIDIA CUDA](https://img.shields.io/badge/CUDA-76B900?style=flat&logo=nvidia&logoColor=white) ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
 
-## How it works
+## Overview
 
-- **Capture.** Two `capture_frames_*` processes open a camera with `cv2.VideoCapture` at 1280x960 and copy frames into shared `multiprocessing.Array` buffers. The OD feed is flipped 180 degrees to match how the camera is mounted.
-- **Inference.** It is driven by PLC sensor bits, not a free-running loop. When the PLC reports a roller at the Big Face (BF) or Outer Diameter (OD) station, that station's process runs its YOLO model on the current frame (`half=True`, `agnostic_nms=True`, on CUDA). Each model is warmed up with 30 passes over `Warmup BF.jpg` / `Warmup OD.jpg` before the line starts. These images are loaded by relative path, so run `main.py` from the repo root.
-- **Filtering.** `filter_detections` applies a per-class confidence threshold and a per-class minimum box area. Both are read from MySQL per model (`bf_threshold_history`, `od_threshold_history`, default 50%).
-- **Tracking.** Several rollers can be in frame, so the app keeps a `roller_id` counter and assigns each defect box to the roller box that contains it. A roller's verdict is committed only when the next station's sensor fires.
-- **Head check (BF only).** `BF_head.pt` detects the head ring and the dimple, measures the gap between them in pixels, and compares it with `high_head_pixels` / `down_head_pixels` for the roller type. Out-of-range parts are marked High Head or Down Head.
-- **PLC.** A `plc_communication` process owns the `python-snap7` connection. It reads the presence and sensor bits and writes pulsed accept/reject bits. Verdicts reach it through queues. The YOLO processes run at high OS priority and the PLC and slot-control helpers at below normal.
-- **Persistence.** At the end of a session `RollerDatabase.save_inspection_session` writes one BF row and one OD row to `welvision_db`: roller type, employee ID, times, inspected/accepted/rejected totals and a per-defect breakdown.
+WelVision is an automated optical inspection (AOI) station for a roller production line. Two industrial cameras watch two faces of each roller as it travels past, the Big Face (BF) and the Outer Diameter (OD), and YOLO models flag surface defects on each one. When a roller reaches the sorting mechanism, the app tells a Siemens S7 PLC whether to accept it or send it to the reject chute, and logs the whole inspection session to MySQL.
 
-Processes share state through a `multiprocessing.Manager` dict, `Array`s for frames, `Value`s for counters and `Queue`s for verdicts and PLC commands. `ProcessManager` tracks every process so they can be stopped together.
+I built this at **iQube (KCT's innovation center)** as the inspection software for **Welvision Pvt. Ltd.**, an industrial client. It runs as one desktop application: a Tkinter operator GUI on top, and a set of cooperating Python processes underneath doing camera capture, GPU inference and PLC I/O. It's the biggest project I've worked on, a full system from camera feed to physical accept/reject, and it ran on a real production line.
 
-Defect classes: BF has rust, dent, damage, high head and down head. OD has rust, dent, damage, damage on end and spherical mark.
+This README covers what's in the public repository: the application code, the inference pipeline, the PLC protocol, the database setup script, the camera profiles and the three trained model weights.
 
-The GUI has role-based access (Operator, Admin, Super Admin) and tabs for System Check, Settings, Inference, Model Management, Diagnosis, Data, Info, User Management and Backup.
+## Key Features
 
-## Models
+- **Dual-face inspection:** independent BF and OD pipelines, each with its own camera, model, thresholds and counters, running concurrently.
+- **Real-time YOLO defect detection:** Ultralytics YOLO models (PyTorch, CUDA half-precision) score every roller as it passes a presence sensor.
+- **Head-type classification on the BF face:** a separate model measures the head ring and dimple geometry in pixels and flags "High Head" / "Down Head" rollers against per-roller-type limits.
+- **Siemens PLC integration:** reads proximity/presence bits and writes accept/reject pulses to a Siemens S7 PLC over `python-snap7`, so the software sorts parts physically.
+- **Per-defect, per-model thresholds:** confidence threshold, bounding-box size threshold and model confidence are stored in MySQL per model and applied as a two-stage filter on detections.
+- **Roller-to-defect association:** defects are matched back to the right roller by bounding-box containment, so multiple rollers in frame don't get their defects mixed up.
+- **Role-based access control:** three roles (Operator, Admin, Super Admin) gate the GUI tabs and actions (settings, model upload, user management, global limits, "allow all" image capture).
+- **Model management from the UI:** upload, select and track BF/OD models; the app loads the latest selected model from the database on startup.
+- **Inspection history and reporting:** every session writes BF and OD tracking rows (counts of inspected/accepted/rejected plus a breakdown per defect class) for the Diagnosis and Data tabs.
+- **Backup and restore tooling:** built-in database backup, image backup with progress windows, and storage checks.
+- **System check / diagnostics:** a tab to verify camera and PLC connectivity and watch live processing counters before starting a run.
+- **Defect image capture:** annotated frames for defective rollers (and optionally *all* frames, Super Admin only) are saved to disk for review and re-labelling.
 
-| File | Use | Size |
-|------|-----|------|
-| `models/BF_sr.pt` | Big Face defects | about 18 MB |
-| `models/OD_sr.pt` | Outer Diameter defects | about 21 MB |
-| `models/BF_head.pt` | BF head-type check | about 6 MB |
+## How It Works
 
-The app loads the latest selected models from the database at startup. New `.pt` files can be uploaded from the Model Management tab. The line was reported to handle on the order of 100,000 rollers a day. I have no measurements in the repo to back that up.
+The application is one Tkinter window (`WelVisionApp`) that, when an operator starts a run, spawns a set of OS processes and connects them with shared memory. Capture, inference and PLC I/O run as separate processes so inference doesn't stall when the GUI redraws or a camera blocks.
 
-## Stack
+### 1. Capture
 
-Python, PyTorch (CUDA 12.8 wheels), Ultralytics YOLO, OpenCV, Tkinter, tkcalendar, Matplotlib, pandas and openpyxl for reports, MySQL (`mysql-connector-python`), `python-snap7`, `pygrabber` and pywin32 for camera access, `psutil`, `gputil`.
+Two `capture_frames_*` processes each open a camera (`cv2.VideoCapture`) at 1280×960 and continuously copy frames into a shared `multiprocessing.Array`. The OD feed is flipped 180° to match the camera mounting. Frame buffers are guarded by locks so the inference processes always read a complete frame.
 
-## Setup
+### 2. Presence-triggered inference
 
-You need Windows with an NVIDIA GPU, a running MySQL server, and for live inspection two industrial cameras and a Siemens S7 PLC on the network.
+The pipeline is driven by PLC sensor bits, not a free-running loop. When the PLC reports a roller present at the BF station, the BF inference process grabs the current frame and runs the BF YOLO model on it; OD works the same way. Each model is warmed up with 30 passes over a bundled warmup image (`Warmup BF.jpg` / `Warmup OD.jpg`) before the line starts, so the first real roller doesn't pay the CUDA/cuDNN initialisation cost. The warmup images are loaded by relative path, so run `main.py` from the repo root.
+
+YOLO runs on GPU with `half=True` and `agnostic_nms=True`. The model outputs roller boxes plus defect boxes; one class index marks the roller itself and everything else is a defect class.
+
+### 3. Detection filtering
+
+Raw detections pass through `filter_detections`, a two-stage gate:
+
+- **Confidence filter:** each defect class has its own percentage threshold read from `bf_threshold_history` / `od_threshold_history` (default 50%).
+- **Size filter:** the bounding-box area in px² must clear a per-class size threshold, which drops tiny spurious boxes.
+
+Thresholds, size limits and the overall model confidence are all read from MySQL per model, so they can be tuned per part without touching code.
+
+### 4. Roller tracking and defect association
+
+Several rollers can be in frame at once, so the app keeps a running `roller_id` counter and a `point_inside` check that assigns each defect box to the roller box containing it. Defects accumulate per roller (`defect` OR-ed, defect names appended). A roller's verdict is committed only when the next station's sensor fires, which guarantees the part has left the inspection window before a decision is sent.
+
+### 5. Head classification (BF only)
+
+On the BF face, a dedicated head model (`BF_head.pt`) detects the head ring and the dimple, computes the horizontal/vertical gap between them in pixels, and compares it to `high_head_pixels` / `down_head_pixels` limits stored per roller type. Out-of-range parts are marked "High Head" or "Down Head" and counted as defects.
+
+### 6. PLC handshake and sorting
+
+A `plc_communication` process owns the Snap7 connection. On startup it waits for both models to report ready, sets the system-ready bits, then loops reading the PLC data block: presence bits, big-face/OD sensors, head-classification trigger, system mode/status. Verdicts go from the inference processes through `Queue`s to slot-control processes, which push `accept_*` / `reject_*` commands onto a command queue; the PLC process turns those into pulsed boolean writes (`trigger_plc_action`) that fire the physical accept/reject actuator.
+
+The PLC and slot-control helpers run at below-normal OS priority and the YOLO inference processes at high priority, so the GPU work gets the CPU first.
+
+### 7. Persistence
+
+At the end of a session, `RollerDatabase.save_inspection_session` writes one BF row and one OD row into `welvision_db`: roller type, employee ID, date, start/end time, totals (inspected / accepted / rejected) and a per-defect breakdown. Those rows feed the reporting tabs.
+
+### Shared state, in one place
+
+The processes coordinate through a `multiprocessing.Manager` dict (`shared_data`) for flags and live counters, `Array`s for raw and annotated frames, `Value`s for proximity counts, and `Queue`s for verdicts and PLC commands. A `ProcessManager` tracks every spawned process so they can all be stopped cleanly on stop or window close.
+
+## Defect Classes
+
+The two faces detect different defect sets:
+
+- **Big Face (BF):** rust, dent, damage, high head, down head
+- **Outer Diameter (OD):** rust, dent, damage, damage-on-end, spherical mark
+
+Each maps to its own counter and its own column in the tracking tables.
+
+## Results / Highlights
+
+- Ships with **three trained YOLO models**: `BF_sr.pt` (~18 MB), `OD_sr.pt` (~21 MB) and `BF_head.pt` (~6 MB) for head classification.
+- Runs **two camera feeds and two GPU inference pipelines concurrently**, driven by PLC sensor events rather than a fixed loop, with per-model GPU warmup to avoid first-frame stalls.
+- Built for continuous shop-floor operation. The line was reported to handle on the order of **100,000+ rollers per day**, though the repo has no measurements to back that figure up.
+- About **100 Python modules** across the frontend GUI and backend, organised into feature packages (inference, settings, diagnosis, model management, user management, backup, system check).
+
+## Tech Stack
+
+- **Language:** Python 3.x
+- **Deep learning / CV:** PyTorch, Torchvision, Ultralytics YOLO, OpenCV, Pillow, NumPy (CUDA 12.8 wheels)
+- **GUI:** Tkinter, tkcalendar, Matplotlib (charts)
+- **Database:** MySQL (`mysql-connector-python`), schema `welvision_db`
+- **Hardware / industrial I/O:** `python-snap7` (Siemens S7 PLC), `pygrabber` + PyWin32 (Windows camera access)
+- **Runtime / ops:** Python `multiprocessing` (processes, shared `Array`/`Queue`/`Manager`), `psutil` (process priority), `gputil`, `pandas` + `openpyxl` (reports), `tqdm`
+
+## Getting Started
+
+### Prerequisites
+
+- Windows PC with an NVIDIA GPU (CUDA); the inference path assumes CUDA is available
+- Python 3.x
+- A running MySQL server
+- Two industrial cameras and a Siemens S7 PLC reachable on the network (for live inspection)
+
+### Installation
 
 ```bash
 git clone https://github.com/DCode-v05/Roller-Defect-Detection.git
 cd Roller-Defect-Detection
+
+# Installs PyTorch from the CUDA 12.8 index plus the rest of the stack
 pip install -r requirements.txt
+```
+
+### Database setup
+
+Create the schema and tables (defaults to `localhost` / `root` / `welvision_db`):
+
+```bash
 python utils/create_db.py
+```
+
+Adjust the database settings (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`) and the PLC settings (`PLC_IP`, `PLC_RACK`, `PLC_SLOT`, `PLC_DB_NUMBER`) in `AppConfig` in `frontend/utils/config.py` to match your hardware. The defaults there are local ones (a root database login and a fixed PLC IP), so change them before real use.
+
+### Running
+
+```bash
 python main.py
 ```
 
-`requirements.txt` pulls PyTorch from the CUDA 12.8 index. Database settings (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`) and PLC settings (`PLC_IP`, `PLC_RACK`, `PLC_SLOT`, `PLC_DB_NUMBER`) are in `AppConfig` in `frontend/utils/config.py`. Change them for your hardware.
+This opens the WelVision login window. Log in, use the **System Check** tab to confirm the cameras and PLC are connected, pick the roller type and models, then start inspection from the **Inference** tab.
 
-After login, use System Check to confirm the cameras and PLC, choose the roller type and models in Settings, then start the run from the Inference tab.
+## Usage
 
-Defect frames are saved to `Desktop/Inference/BF` and `Desktop/Inference/OD`. With Allow All Images on (Super Admin only), every frame goes to `Desktop/All Frames`.
+- **Login** with an employee ID; your role (Operator / Admin / Super Admin) decides which tabs and actions you can use.
+- **System Check:** verify camera and PLC connectivity and watch the processing counters before a run.
+- **Settings:** select the active BF/OD models, set per-defect confidence and size thresholds, and configure roller-type limits (Admin/Super Admin).
+- **Inference:** start/stop the line, watch the live annotated feeds, and see per-face counts of inspected / OK / not-OK and the defect breakdown update in real time.
+- **Model Management:** upload new `.pt` weights and track which model is in use (Admin/Super Admin).
+- **Diagnosis / Data:** review historical sessions, defect-wise and status charts, and per-roller records.
+- **Backup:** back up the database and captured images, with storage checks (Admin/Super Admin).
 
-## Structure
+Defect frames are written to `Desktop/Inference/BF` and `Desktop/Inference/OD`; with "Allow All Images" enabled (Super Admin), every frame is saved under `Desktop/All Frames` for re-labelling datasets. The code is Windows-only.
+
+## Project Structure
 
 ```
-main.py                 entry point
-backend.py              capture, YOLO inference, filtering, PLC and sorting processes
-database.py             RollerDatabase, writes session tracking to MySQL
-models/                 trained weights
-IC Capture Settings/    saved camera profiles for BF and OD
-Warmup BF.jpg, Warmup OD.jpg
-frontend/
-  app.py                WelVisionApp, starts processes and shared memory
-  login/ navbar/ inference/ settings/ model_management/ system_check/
-  diagnosis/ data/ info/ user_management/ backup/
-  utils/                config, permissions, process manager, logging, helpers
-utils/                  create_db, backup/restore, GPU and cache cleanup, model_size
+Roller-Defect-Detection/
+├── main.py                     # Entry point, launches the Tkinter app
+├── backend.py                  # Inference + PLC pipeline: capture, YOLO, filtering, sorting
+├── database.py                 # RollerDatabase, writes BF/OD session tracking to MySQL
+├── requirements.txt            # Deps (PyTorch CUDA 12.8 index, Ultralytics, snap7, etc.)
+├── LICENSE                     # MIT
+├── .gitignore
+├── Warmup BF.jpg / Warmup OD.jpg  # Frames used to warm up the GPU models
+├── models/
+│   ├── BF_sr.pt                # Big Face defect model (~18 MB)
+│   ├── OD_sr.pt                # Outer Diameter defect model (~21 MB)
+│   └── BF_head.pt              # Head-type classification model (~6 MB)
+├── IC Capture Settings/        # Saved industrial-camera profiles (BF / OD)
+├── frontend/
+│   ├── app.py                  # WelVisionApp, spawns processes and wires shared memory
+│   ├── login/                  # Auth + role selection
+│   ├── navbar/                 # Tab navigation
+│   ├── inference/              # Live inspection tab: feeds, control, results, state
+│   ├── settings/               # Model selection + threshold management
+│   ├── model_management/       # Upload / select / track models (DB-backed)
+│   ├── system_check/           # Camera + PLC connectivity, plc_controller, counters
+│   ├── diagnosis/              # Reports, defect-wise and status charts
+│   ├── data/                   # Roller data tables and global limits
+│   ├── info/                   # System info, settings history, user manual
+│   ├── user_management/        # User CRUD (RBAC)
+│   ├── backup/                 # DB + image backup with progress UI
+│   └── utils/                  # config, permissions (RBAC), process_manager, logging, helpers
+└── utils/                      # create_db, backup/restore, GPU/cache cleanup, model_size
 ```
+
+---
 
 ## Contact
 
-[Portfolio](https://www.denistan.me) · [LinkedIn](https://www.linkedin.com/in/denistanb) · [GitHub](https://github.com/DCode-v05) · denistanb05@gmail.com
+<table>
+  <tr><td><b>Portfolio:</b> <a href="https://www.denistan.me">Denistan</a></td><td><b>LinkedIn:</b> <a href="https://www.linkedin.com/in/denistanb">denistanb</a></td></tr>
+  <tr><td><b>GitHub:</b> <a href="https://github.com/DCode-v05">DCode-v05</a></td><td><b>LeetCode:</b> <a href="https://leetcode.com/u/Denistan_B">Denistan_B</a></td></tr>
+  <tr><td colspan="2" align="center"><b>Email:</b> <a href="mailto:denistanb05@gmail.com">denistanb05@gmail.com</a></td></tr>
+</table>
+
+Made with ❤️ by **Denistan B**
